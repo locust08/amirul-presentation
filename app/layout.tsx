@@ -4,7 +4,7 @@ import "./presentation.css";
 
 export const metadata: Metadata = {
   title: "Final Internship Presentation | Amirul Shahrul",
-  description: "Locus-T x DigitalBee final internship presentation",
+  description: "LOCUS-T x DigitalBee final internship presentation",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
