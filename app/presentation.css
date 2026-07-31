@@ -22,3 +22,36 @@ body:has(.slide-viewport) .viewer-meta,body:has(.slide-viewport) .viewer-control
 .contents-slide .contents-card>i{width:100%;margin:clamp(8px,.75cqw,14px) 0 clamp(7px,.65cqw,12px)!important}
 .contents-slide .contents-card h3{min-width:0;margin:0!important;font-size:clamp(.66rem,1.08cqw,1.08rem)!important;line-height:1.2!important;overflow-wrap:anywhere}
 .contents-slide .contents-card b{width:clamp(30px,3.8cqw,45px)!important;height:clamp(30px,3.8cqw,45px)!important;font-size:clamp(.62rem,1.05cqw,1.05rem)!important}.contents-slide .contents-icon{width:clamp(32px,4.35cqw,52px)!important;height:clamp(32px,4.35cqw,52px)!important}.contents-slide .contents-icon svg{width:52%!important;height:52%!important}
+
+/* On phones, use a document layout rather than shrinking a desktop slide into a
+   locked viewport. This keeps content readable and lets the page scroll. */
+@media (max-width:800px){
+  html,body{height:auto!important;min-height:100%;overflow-x:hidden!important;overflow-y:auto!important}
+  .viewer,.slide-viewport{display:block!important;width:100%!important;height:auto!important;min-height:100dvh!important;overflow:visible!important;background:#fbfbfa!important}
+  .viewer{padding:0 0 82px!important;position:relative!important}
+  .viewer-canvas,.slide-viewport-canvas{width:100%!important;height:auto!important;min-height:100dvh!important;max-height:none!important;aspect-ratio:auto!important;overflow:visible!important;box-shadow:none!important}
+  .viewer-canvas>.slide-shell,.slide-viewport-canvas>.slide-shell{width:100%!important;height:auto!important;min-height:100dvh!important;aspect-ratio:auto!important;overflow:hidden!important}
+  .viewer-meta{top:12px!important;left:15px!important;right:15px!important;font-size:8px!important;color:#34383b!important;text-shadow:none!important}
+  .viewer-control-zone{position:fixed!important;left:50%!important;right:auto!important;bottom:14px!important;width:auto!important;height:auto!important;z-index:50!important;opacity:1!important;transform:translateX(-50%)!important}
+  .viewer-controls{padding:7px 10px!important;gap:10px!important;background:rgba(23,26,28,.94)!important;border-radius:999px!important}
+  .viewer-controls>button{width:40px!important;height:40px!important}
+  .viewer-controls>div{max-width:155px!important;overflow:hidden!important;gap:5px!important}
+  .viewer-controls>div button{width:7px!important;height:7px!important}
+  .viewer-controls>div button.active{width:22px!important}
+  .slide-shell{min-width:0!important}
+  .page-content{height:auto!important;min-height:100dvh!important;padding:82px 22px 96px!important}
+  .slide-shell .slide-title,.contents-slide .slide-title,.assist-slide .slide-title,.future .slide-title,.challenge .slide-title,.conclusion .slide-title{max-width:100%!important;font-size:clamp(2.25rem,11vw,3.8rem)!important;line-height:.98!important;letter-spacing:-.065em!important}
+  .slide-shell .subtitle{font-size:1rem!important;line-height:1.5!important;margin-bottom:26px!important}
+  .three-grid,.four-grid,.overview-grid,.projects-grid,.assist-grid,.contents-slide .contents-grid{grid-template-columns:1fr!important;width:100%!important;gap:16px!important}
+  .contents-slide .contents-card{height:auto!important;min-height:148px!important;padding:20px!important}
+  .feature-card,.why-grid .feature-card,.overview-card,.overview-card-button,.assist-card,.future-card{min-height:0!important;padding:24px 20px!important}
+  .feature-card h3,.why-grid .feature-card h3,.overview-card h3,.overview-card-button h3,.assist-card h3,.future-card h3{font-size:1.45rem!important;max-width:75%!important}
+  .feature-card li,.overview-card li,.future-card li,.why-grid .feature-card li,.overview-card-button li{font-size:1rem!important;line-height:1.4!important}
+  .skills-strip{margin-top:18px!important;display:grid!important;grid-template-columns:repeat(2,1fr)!important;gap:12px!important;padding:16px!important}
+  .hero-panel{height:auto!important;grid-template-columns:1fr!important;margin-top:24px!important}
+  .hero-panel>div:first-child{padding:28px 25px!important}.hero-panel h2{font-size:2.25rem!important}.hero-panel p{max-width:100%!important;font-size:1rem!important}.building{height:230px!important;clip-path:none!important}
+  .challenge-head,.challenge-row{grid-template-columns:1fr!important;gap:12px!important;margin:18px 0 0!important}.result{margin:18px 0 0!important;padding:18px!important}
+  .project-preview{height:185px!important}.quote-bar{padding:18px 20px!important;font-size:1.08rem!important}
+  .project-modal,.exciting-modal,.showcase-modal,.flow-diagram-modal{position:fixed!important;overflow:auto!important}.project-detail,.exciting-detail,.showcase-detail,.flow-diagram-card{max-height:none!important}
+  .cover-copy{position:relative!important;left:auto!important;top:auto!important;width:100%!important;padding:88px 22px 42px!important}.logos{width:100%!important}.nameplate,.supervisors{width:100%!important}
+}
