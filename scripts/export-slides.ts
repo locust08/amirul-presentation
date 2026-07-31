@@ -3,7 +3,7 @@ import { spawn, execFile } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
-const slides = ["cover", "contents", "why", "overview", "assist-tasks", "exciting", "challenge", "showcase", "conclusion", "future", "thank-you"];
+const slides = ["cover", "contents", "why", "overview", "project-puma", "project-originote", "project-ptti", "project-dashboard", "project-clef", "exciting", "challenge", "overcoming", "conclusion", "memories", "qna"];
 const port = process.env.SLIDE_PORT || "3100";
 const baseUrl = `http://127.0.0.1:${port}`;
 const output = path.join(process.cwd(), "public", "exports");
@@ -37,7 +37,7 @@ async function main() {
       await page.waitForTimeout(150);
       const dimensions = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }));
       if (dimensions.width > 1920 || dimensions.height > 1080) throw new Error(`${id} creates page overflow: ${dimensions.width}x${dimensions.height}`);
-      const file = id === "thank-you" ? "final-thank-you.png" : `${String(index + 1).padStart(2, "0")}-${id}.png`;
+      const file = `${String(index + 1).padStart(2, "0")}-${id}.png`;
       await page.locator(".slide-shell").screenshot({ path: path.join(output, file) });
     }
     await browser.close();
