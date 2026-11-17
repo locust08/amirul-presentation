@@ -1,7 +1,12 @@
 node_modules
-.next
-out
-.playwright-cli
-tsconfig.tsbuildinfo
+dist
+.astro
+.emdash/migrations.json
+uploads
+data.db
+data.db-*
 
-.vercel
+# Environment
+.env
+.env.*
+!.env.example

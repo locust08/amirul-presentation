@@ -1,0 +1,140 @@
+---
+import { PortableText } from "emdash/ui";
+import Base from "../layouts/Base.astro";
+import OutletCard from "../components/OutletCard.astro";
+import { getLocalizedEntry, getRestaurants, outletsOf } from "../lib/content";
+import { breadcrumbJsonLd, restaurantJsonLd } from "../lib/seo";
+import { localePath, useTranslations, type Lang } from "../i18n/ui";
+
+interface Props {
+	lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const origin = (Astro.site ?? Astro.url).origin;
+
+const [restaurants, contactPage] = await Promise.all([
+	getRestaurants(lang, Astro),
+	getLocalizedEntry("pages", "contact", lang, Astro),
+]);
+
+// Group outlets by area so new regions (e.g. Klang Valley) appear automatically.
+const areas = new Map<string, { outlet: ReturnType<typeof outletsOf>[number]; restaurant: (typeof restaurants)[number] }[]>();
+for (const r of restaurants) {
+	for (const outlet of outletsOf(r)) {
+		const area = outlet.area || "Genting Highlands";
+		if (!areas.has(area)) areas.set(area, []);
+		areas.get(area)!.push({ outlet, restaurant: r });
+	}
+}
+const areaLabel = (area: string) =>
+	lang === "zh" ? ({ "Genting Highlands": "云顶高原", "Klang Valley": "巴生谷" } as Record<string, string>)[area] ?? area : area;
+
+const title = lang === "zh" ? "云顶高原大福餐厅地点与联系方式" : "Locations & contact — DAFU restaurants in Genting Highlands";
+const heading = contactPage?.data.title || t("contact.heading");
+const lede = contactPage?.data.intro || t("contact.lede");
+---
+
+<Base
+	lang={lang}
+	title={title}
+	description={t("contact.lede")}
+	jsonLd={[
+		...restaurants.flatMap((r) => restaurantJsonLd(r, lang, origin)),
+		breadcrumbJsonLd(
+			[
+				{ name: t("breadcrumb.home"), path: localePath(lang, "/") },
+				{ name: t("nav.contact"), path: localePath(lang, "/contact") },
+			],
+			origin,
+		),
+	]}
+>
+	<header class="page-head on-jade">
+		<div class="wrap">
+			<h1>{heading}</h1>
+			<p class="lede">{lede}</p>
+			{
+				areas.size > 1 && (
+					<nav class="jump" aria-label={t("nav.contact")}>
+						{[...areas.keys()].map((a) => (
+							<a href={`#${a.toLowerCase().replace(/\s+/g, "-")}`}>{areaLabel(a)}</a>
+						))}
+					</nav>
+				)
+			}
+		</div>
+	</header>
+
+	{
+		[...areas.entries()].map(([area, items]) => (
+			<section class="section area" id={area.toLowerCase().replace(/\s+/g, "-")} aria-labelledby={`h-${area}`}>
+				<div class="wrap">
+					<h2 id={`h-${area}`}>{areaLabel(area)}</h2>
+					<div class="list">
+						{items.map(({ outlet, restaurant }) => (
+							<OutletCard
+								outlet={outlet}
+								lang={lang}
+								map
+								restaurant={{ name: restaurant.data.name, href: localePath(lang, `/restaurants/${restaurant.id}`) }}
+							/>
+						))}
+					</div>
+				</div>
+			</section>
+		))
+	}
+
+	<section class="section group">
+		<div class="wrap group-inner">
+			<h2>{t("contact.groupHeading")}</h2>
+			{
+				contactPage?.data.content?.length ? (
+					<div class="prose">
+						<PortableText value={contactPage.data.content} />
+					</div>
+				) : (
+					<p>{t("contact.groupBody")}</p>
+				)
+			}
+		</div>
+	</section>
+</Base>
+
+<style>
+	.page-head {
+		padding-block: var(--space-5) var(--space-4);
+	}
+
+	.jump {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		margin-top: var(--space-3);
+	}
+	.jump a {
+		font-weight: 700;
+	}
+
+	.list {
+		display: grid;
+		gap: var(--space-3);
+		margin-top: var(--space-3);
+	}
+
+	.area :global(.outlet) {
+		border: 1px solid var(--line);
+	}
+
+	.group {
+		background: var(--white);
+	}
+
+	.group-inner {
+		max-width: 760px;
+		margin-inline: auto;
+		width: min(100% - 2 * var(--gutter), var(--wrap));
+	}
+</style>

@@ -1,0 +1,630 @@
+---
+import { getSeoMeta } from "emdash";
+import { PortableText, Image } from "emdash/ui";
+import Base from "../layouts/Base.astro";
+import Signboard from "../components/Signboard.astro";
+import Photo from "../components/Photo.astro";
+import OutletCard from "../components/OutletCard.astro";
+import PromoCard from "../components/PromoCard.astro";
+import RestaurantCard from "../components/RestaurantCard.astro";
+import {
+	accentOf,
+	directionsUrl,
+	getLocalizedEntry,
+	getPromotions,
+	getRestaurants,
+	groupMenu,
+	hasImage,
+	outletsOf,
+	restaurantLookup,
+	telHref,
+} from "../lib/content";
+import { breadcrumbJsonLd, imageUrl, restaurantJsonLd } from "../lib/seo";
+import { localePath, useTranslations, type Lang } from "../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	slug: string;
+}
+
+const { lang, slug } = Astro.props;
+const t = useTranslations(lang);
+const origin = (Astro.site ?? Astro.url).origin;
+
+const entry = await getLocalizedEntry("restaurants", slug, lang, Astro);
+// The route checks the entry exists before rendering this view.
+if (!entry) throw new Error(`Missing entry: ${slug}`);
+
+const [all, promos] = await Promise.all([getRestaurants(lang, Astro), getPromotions(lang, Astro)]);
+const lookup = restaurantLookup(all);
+const others = all.filter((r) => r.id !== entry.id);
+const ownPromos = promos.filter((p) => p.data.restaurant === entry.id || p.data.restaurant === "all").slice(0, 2);
+
+const d = entry.data;
+const accent = accentOf(entry);
+const outlets = outletsOf(entry);
+const primary = outlets[0];
+const menu = groupMenu(d.menu);
+const signatures: any[] = Array.isArray(d.signatures) ? d.signatures : [];
+const gallery: any[] = Array.isArray(d.gallery) ? d.gallery.filter((g: any) => hasImage(g?.image)) : [];
+const menuPdf = d.menu_pdf?.url || d.menu_pdf?.src;
+
+// Default <title> when the SEO panel is empty, e.g.
+//   "DAFU Congee 粥大福 — Hong Kong restaurant in Genting Highlands"
+//   "粥大福｜云顶高原港式餐厅"
+const isBar = accent === "neon";
+const firstCuisine = d.cuisine ? String(d.cuisine).split(/[,，、]/)[0].trim() : "";
+const area = primary?.area === "Klang Valley" ? (lang === "zh" ? "巴生谷" : "Klang Valley") : lang === "zh" ? "云顶高原" : "Genting Highlands";
+const defaultTitle =
+	lang === "zh"
+		? `${d.name}${d.name_zh !== d.name ? ` ${d.name_zh}` : ""}｜${area}${isBar ? "酒吧" : `${firstCuisine.replace(/[、，]/g, "")}餐厅`}`
+		: `${d.name} ${d.name_zh} — ${isBar ? "Bar" : `${firstCuisine || "Chinese"} restaurant`} in ${area}`;
+
+const seo = getSeoMeta(entry as any, {
+	siteTitle: "DAFU 大福",
+	siteUrl: origin,
+	path: localePath(lang, `/restaurants/${slug}`),
+	defaultTitle,
+	defaultDescription: d.summary,
+} as any);
+
+const jsonLd = [
+	...restaurantJsonLd(entry, lang, origin),
+	breadcrumbJsonLd(
+		[
+			{ name: t("breadcrumb.home"), path: localePath(lang, "/") },
+			{ name: t("nav.restaurants"), path: localePath(lang, "/restaurants") },
+			{ name: d.name, path: localePath(lang, `/restaurants/${slug}`) },
+		],
+		origin,
+	),
+];
+---
+
+<Base
+	lang={lang}
+	title={(seo as any).title?.replace(/\s*\|\s*DAFU 大福$/, "") ?? d.name}
+	description={(seo as any).description ?? d.summary}
+	image={imageUrl(d.hero_image, origin)}
+	jsonLd={jsonLd}
+	current={slug}
+>
+	<article class:list={["restaurant", `accent-${accent}`]}>
+		<header class="r-hero">
+			<div class="wrap r-hero-grid">
+				<div class="r-sign">
+					<Signboard text={d.name_zh} accent={accent} size="lg" />
+				</div>
+				<div class="r-intro">
+					<nav class="crumbs" aria-label="Breadcrumb">
+						<a href={localePath(lang, "/restaurants")}>{t("nav.restaurants")}</a>
+					</nav>
+					<h1 {...entry.edit?.name}>{d.name}</h1>
+					{d.tagline && <p class="lede" {...entry.edit?.tagline}>{d.tagline}</p>}
+					<ul class="facts">
+						{primary?.hours && (
+							<li>
+								<span class="fact-label">{t("restaurants.hours")}</span>
+								<span class="pre">{primary.hours}</span>
+							</li>
+						)}
+						{d.price_range && (
+							<li>
+								<span class="fact-label">{t("restaurants.priceRange")}</span>
+								{d.price_range}
+							</li>
+						)}
+						{primary?.area && (
+							<li>
+								<span class="fact-label">{t("restaurants.address")}</span>
+								{lang === "zh" && primary.area === "Genting Highlands" ? t("common.genting") : primary.area}
+							</li>
+						)}
+					</ul>
+					<div class="r-actions">
+						<a class="btn btn-gold" href="#menu">{t("restaurants.menu")}</a>
+						{primary && (
+							<a class="btn btn-line" href={directionsUrl(primary)} target="_blank" rel="noopener noreferrer">
+								{t("restaurants.directions")}
+							</a>
+						)}
+					</div>
+				</div>
+				<div class="r-photo">
+					<Photo
+						image={d.hero_image}
+						alt={d.name}
+						han={d.name_zh}
+						caption={d.tagline}
+						accent={accent}
+						ratio="4 / 5"
+						loading="eager"
+						sizes="(min-width: 960px) 420px, 100vw"
+					/>
+				</div>
+			</div>
+		</header>
+
+		{
+			d.story?.length > 0 && (
+				<section class="section">
+					<div class="wrap"><div class="prose story" {...entry.edit?.story}>
+						<PortableText value={d.story} />
+					</div></div>
+				</section>
+			)
+		}
+
+		{
+			signatures.length > 0 && (
+				<section class="section signatures" aria-labelledby="sig-heading">
+					<div class="wrap">
+						<h2 id="sig-heading">{t("restaurants.signatures")}</h2>
+						<ul class="sig-grid">
+							{signatures.map((dish) => (
+								<li>
+									<Photo
+										image={dish.image}
+										alt={dish.name}
+										han={dish.name_zh || dish.name}
+										accent={accent}
+										ratio="1 / 1"
+										sizes="(min-width: 960px) 280px, 50vw"
+									/>
+									<div class="sig-body">
+										<h3>{dish.name}</h3>
+										{dish.name_zh && dish.name_zh !== dish.name && (
+											<p class="sig-zh han" lang="zh-Hans">
+												{dish.name_zh}
+											</p>
+										)}
+										{dish.description && <p>{dish.description}</p>}
+										{dish.price && <p class="price">{dish.price}</p>}
+									</div>
+								</li>
+							))}
+						</ul>
+					</div>
+				</section>
+			)
+		}
+
+		{
+			menu.length > 0 && (
+				<section id="menu" class="section menu-section" aria-labelledby="menu-heading">
+					<div class="wrap">
+						<div class="menu-board">
+							<h2 id="menu-heading">{t("restaurants.menu")}</h2>
+							<div class="menu-cols">
+								{menu.map((section) => (
+									<section class="menu-group">
+										{section.title && <h3>{section.title}</h3>}
+										<ul>
+											{section.items.map((item) => (
+												<li>
+													<span class="item">
+														<span class="item-name">{item.name}</span>
+														{item.name_zh && item.name_zh !== item.name && (
+															<span class="item-alt" lang={lang === "zh" ? "en" : "zh-Hans"}>
+																{item.name_zh}
+															</span>
+														)}
+														{item.description && <span class="item-desc">{item.description}</span>}
+													</span>
+													<span class="dots" aria-hidden="true" />
+													{item.price && <span class="item-price">{item.price}</span>}
+												</li>
+											))}
+										</ul>
+									</section>
+								))}
+							</div>
+							<p class="menu-note">{t("restaurants.menuNote")}</p>
+							{menuPdf && (
+								<a class="btn btn-gold" href={menuPdf} target="_blank" rel="noopener">
+									{t("restaurants.menuPdf")}
+								</a>
+							)}
+						</div>
+					</div>
+				</section>
+			)
+		}
+
+		{
+			gallery.length > 0 && (
+				<section class="section" aria-labelledby="gallery-heading">
+					<div class="wrap">
+						<h2 id="gallery-heading">{t("restaurants.gallery")}</h2>
+						<ul class="gallery">
+							{gallery.map((g) => (
+								<li>
+									<figure>
+										<Image image={g.image} alt={g.image?.alt || g.caption || d.name} sizes="(min-width: 960px) 400px, 50vw" />
+										{g.caption && <figcaption>{g.caption}</figcaption>}
+									</figure>
+								</li>
+							))}
+						</ul>
+					</div>
+				</section>
+			)
+		}
+
+		{
+			outlets.length > 0 && (
+				<section id="visit" class="section on-jade" aria-labelledby="visit-heading">
+					<div class="wrap">
+						<h2 id="visit-heading">{t("restaurants.visit")}</h2>
+						<div class="outlets">
+							{outlets.map((o, i) => (
+								<OutletCard outlet={o} lang={lang} map={i < 3} />
+							))}
+						</div>
+					</div>
+				</section>
+			)
+		}
+
+		{
+			ownPromos.length > 0 && (
+				<section class="section" aria-labelledby="promo-heading">
+					<div class="wrap">
+						<h2 id="promo-heading">{t("restaurants.promos")}</h2>
+						<div class="promos">
+							{ownPromos.map((p) => (
+								<PromoCard entry={p} lang={lang} restaurants={lookup} layout="row" />
+							))}
+						</div>
+					</div>
+				</section>
+			)
+		}
+
+		{
+			others.length > 0 && (
+				<section class="section others" aria-labelledby="others-heading">
+					<div class="wrap">
+						<h2 id="others-heading">{t("restaurants.others")}</h2>
+						<div class="others-grid">
+							{others.map((r) => (
+								<RestaurantCard entry={r} lang={lang} />
+							))}
+						</div>
+					</div>
+				</section>
+			)
+		}
+	</article>
+
+	{
+		primary && (
+			<div class:list={["mobile-bar", `accent-${accent}`]} role="navigation" aria-label={t("restaurants.visit")}>
+				<a href="#menu">{t("restaurants.menu")}</a>
+				<a href={directionsUrl(primary)} target="_blank" rel="noopener noreferrer">
+					{t("home.ctaDirections")}
+				</a>
+				{primary.phone && <a href={telHref(primary.phone)}>{t("restaurants.call")}</a>}
+			</div>
+		)
+	}
+</Base>
+
+<style>
+	.restaurant,
+	.mobile-bar {
+		--accent: var(--red);
+		--accent-ink: var(--white);
+	}
+	.accent-gold {
+		--accent: var(--gold);
+		--accent-ink: var(--ink);
+	}
+	.accent-neon {
+		--accent: var(--neon);
+		--accent-ink: var(--night);
+	}
+	.accent-jade {
+		--accent: var(--jade);
+		--accent-ink: var(--white);
+	}
+
+	/* ---------- Hero ---------- */
+	.r-hero {
+		background: var(--jade-deep);
+		background-image: var(--tile);
+		color: var(--white);
+		padding-block: var(--space-4) var(--space-5);
+		border-bottom: 6px solid var(--accent);
+	}
+	.accent-neon .r-hero {
+		background-color: var(--night);
+	}
+
+	.r-hero-grid {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) minmax(0, 0.8fr);
+		gap: var(--space-4);
+		align-items: start;
+	}
+
+	.r-sign {
+		margin-top: calc(-1 * var(--space-4));
+	}
+
+	.crumbs {
+		font-size: var(--step--1);
+		font-weight: 600;
+		margin-bottom: var(--space-2);
+	}
+	.crumbs a {
+		color: rgb(255 255 255 / 0.8);
+	}
+
+	.r-intro h1 {
+		margin-bottom: var(--space-2);
+	}
+
+	.r-intro .lede {
+		color: rgb(255 255 255 / 0.85);
+	}
+
+	.facts {
+		display: grid;
+		gap: 0.75rem;
+		margin: var(--space-3) 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.facts li {
+		display: grid;
+		grid-template-columns: 9rem 1fr;
+		gap: 1rem;
+		padding-bottom: 0.75rem;
+		border-bottom: 1px solid rgb(255 255 255 / 0.15);
+	}
+
+	.fact-label {
+		font-size: var(--step--1);
+		font-weight: 700;
+		color: var(--gold);
+		padding-top: 0.15rem;
+	}
+
+	.pre {
+		white-space: pre-line;
+	}
+
+	.r-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+	}
+
+	/* ---------- Story ---------- */
+	.story {
+		font-size: var(--step-1);
+		line-height: 1.6;
+	}
+
+	/* ---------- Signatures ---------- */
+	.signatures {
+		background: var(--white);
+	}
+
+	.sig-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+		gap: var(--space-3);
+		margin: var(--space-3) 0 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.sig-body h3 {
+		margin: var(--space-2) 0 0.2rem;
+	}
+
+	.sig-zh {
+		font-size: var(--step-0);
+		color: var(--ink-soft);
+		margin-bottom: 0.4rem;
+		letter-spacing: 0.08em;
+	}
+
+	.sig-body p {
+		font-size: var(--step--1);
+		color: var(--ink-soft);
+		margin-bottom: 0.4rem;
+	}
+
+	.sig-body .price {
+		font-weight: 800;
+		color: var(--ink);
+		font-size: var(--step-0);
+	}
+
+	/* ---------- Menu board ---------- */
+	.menu-board {
+		background: var(--jade-deep);
+		background-image: var(--tile);
+		color: var(--white);
+		border-radius: var(--radius);
+		padding: clamp(1.5rem, 1rem + 3vw, 3.5rem);
+		box-shadow:
+			inset 0 0 0 6px var(--jade-deep),
+			inset 0 0 0 8px var(--gold);
+	}
+
+	.menu-board h2 {
+		color: var(--gold);
+	}
+
+	.menu-cols {
+		columns: 2 320px;
+		column-gap: var(--space-5);
+	}
+
+	.menu-group {
+		break-inside: avoid;
+		margin-bottom: var(--space-4);
+	}
+
+	.menu-group h3 {
+		color: var(--gold);
+		font-size: var(--step-0);
+		margin-bottom: var(--space-2);
+		padding-bottom: 0.5rem;
+		border-bottom: 2px solid rgb(242 182 60 / 0.5);
+	}
+
+	.menu-group ul {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		display: grid;
+		gap: 0.9rem;
+	}
+
+	.menu-group li {
+		display: grid;
+		grid-template-columns: auto 1fr auto;
+		align-items: baseline;
+		gap: 0.6rem;
+	}
+
+	.item {
+		display: flex;
+		flex-direction: column;
+		max-width: 30ch;
+	}
+
+	.item-name {
+		font-weight: 700;
+	}
+
+	.item-alt,
+	.item-desc {
+		font-size: var(--step--1);
+		color: rgb(255 255 255 / 0.7);
+	}
+
+	.dots {
+		border-bottom: 2px dotted rgb(255 255 255 / 0.35);
+		transform: translateY(-0.3em);
+		min-width: 1rem;
+	}
+
+	.item-price {
+		font-weight: 800;
+		color: var(--gold);
+		white-space: nowrap;
+	}
+
+	.menu-note {
+		font-size: var(--step--1);
+		color: rgb(255 255 255 / 0.75);
+	}
+
+	/* ---------- Gallery ---------- */
+	.gallery {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+		gap: var(--space-2);
+		padding: 0;
+		margin: var(--space-3) 0 0;
+		list-style: none;
+	}
+	.gallery figure {
+		margin: 0;
+	}
+	.gallery :global(img) {
+		border-radius: var(--radius);
+		aspect-ratio: 4 / 3;
+		object-fit: cover;
+		width: 100%;
+	}
+	.gallery figcaption {
+		font-size: var(--step--1);
+		color: var(--ink-soft);
+		margin-top: 0.4rem;
+	}
+
+	/* ---------- Visit / promos / others ---------- */
+	.outlets {
+		display: grid;
+		gap: var(--space-3);
+		margin-top: var(--space-3);
+	}
+
+	.promos {
+		display: grid;
+		gap: var(--space-4);
+		margin-top: var(--space-3);
+	}
+
+	.others {
+		background: var(--white);
+	}
+
+	.others-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+		gap: var(--space-3);
+		margin-top: var(--space-3);
+		max-width: 820px;
+	}
+
+	/* ---------- Mobile action bar ---------- */
+	.mobile-bar {
+		display: none;
+	}
+
+	@media (max-width: 860px) {
+		.r-hero-grid {
+			grid-template-columns: auto minmax(0, 1fr);
+			gap: var(--space-3);
+		}
+		.r-photo {
+			grid-column: 1 / -1;
+		}
+		.r-sign {
+			margin-top: calc(-1 * var(--space-4));
+		}
+		.r-sign :global(.sign) {
+			font-size: 1.6rem;
+		}
+		.facts li {
+			grid-template-columns: 1fr;
+			gap: 0.1rem;
+		}
+
+		.mobile-bar {
+			display: grid;
+			grid-auto-flow: column;
+			grid-auto-columns: 1fr;
+			position: sticky;
+			bottom: 0;
+			z-index: 40;
+			background: var(--jade-deep);
+			border-top: 3px solid var(--accent);
+			padding-bottom: env(safe-area-inset-bottom);
+		}
+		.mobile-bar a {
+			display: grid;
+			place-items: center;
+			min-height: 56px;
+			color: var(--white);
+			font-weight: 700;
+			text-decoration: none;
+		}
+		.mobile-bar a + a {
+			border-left: 1px solid rgb(255 255 255 / 0.15);
+		}
+		.mobile-bar a:first-child {
+			background: var(--accent);
+			color: var(--accent-ink);
+		}
+	}
+</style>

@@ -1,0 +1,438 @@
+---
+import Base from "../layouts/Base.astro";
+import Signboard from "../components/Signboard.astro";
+import Photo from "../components/Photo.astro";
+import RestaurantCard from "../components/RestaurantCard.astro";
+import PromoCard from "../components/PromoCard.astro";
+import OutletCard from "../components/OutletCard.astro";
+import { Image } from "emdash/ui";
+import {
+	accentOf,
+	getLocalizedEntry,
+	getPromotions,
+	getRestaurants,
+	hasImage,
+	outletsOf,
+	restaurantLookup,
+} from "../lib/content";
+import { itemListJsonLd } from "../lib/seo";
+import { localePath, useTranslations, type Lang } from "../i18n/ui";
+
+interface Props {
+	lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const origin = (Astro.site ?? Astro.url).origin;
+
+const [restaurants, promotions, homePage] = await Promise.all([
+	getRestaurants(lang, Astro),
+	getPromotions(lang, Astro, 3),
+	getLocalizedEntry("pages", "home", lang, Astro),
+]);
+const lookup = restaurantLookup(restaurants);
+
+const signatures = restaurants.flatMap((r) =>
+	(Array.isArray(r.data.signatures) ? r.data.signatures.slice(0, 2) : []).map((dish: any) => ({
+		dish,
+		restaurant: r,
+	})),
+);
+const outlets = restaurants.flatMap((r) =>
+	outletsOf(r)
+		.filter((o) => (o.area ?? "Genting Highlands") === "Genting Highlands")
+		.map((o) => ({ outlet: o, restaurant: r })),
+);
+
+const heroImage = homePage?.data.hero_image;
+const heading = homePage?.data.title && homePage.data.title !== "Home" && homePage.data.title !== "首页" ? homePage.data.title : t("home.heading");
+const lede = homePage?.data.intro || t("home.lede");
+---
+
+<Base lang={lang} description={t("site.description")} image={(heroImage as any)?.src} jsonLd={[itemListJsonLd(restaurants, lang, origin)]}>
+	<section class="hero on-jade">
+		{
+			hasImage(heroImage) && (
+				<div class="hero-photo" aria-hidden="true">
+					<Image image={heroImage as any} alt="" sizes="100vw" loading="eager" fetchpriority="high" />
+				</div>
+			)
+		}
+		<div class="wrap hero-grid">
+			<div class="hero-copy">
+				<h1>{heading}</h1>
+				<p class="lede">{lede}</p>
+				<div class="hero-actions">
+					<a class="btn btn-gold" href={localePath(lang, "/restaurants")}>{t("home.ctaRestaurants")}</a>
+					<a class="btn btn-line" href={localePath(lang, "/contact")}>{t("home.ctaDirections")}</a>
+				</div>
+			</div>
+
+			<ul class="street" aria-label={t("nav.restaurants")}>
+				{
+					restaurants.map((r, i) => (
+						<li style={`--i:${i}`}>
+							<a href={localePath(lang, `/restaurants/${r.id}`)} aria-label={r.data.name}>
+								<Signboard text={r.data.name_zh} accent={accentOf(r)} size={i === 0 ? "lg" : "md"} />
+								{r.data.name !== r.data.name_zh && <span class="street-label">{r.data.name}</span>}
+							</a>
+						</li>
+					))
+				}
+			</ul>
+		</div>
+	</section>
+
+	<section class="section" aria-labelledby="restaurants-heading">
+		<div class="wrap">
+			<div class="section-head">
+				<h2 id="restaurants-heading">{t("home.restaurantsHeading")}</h2>
+				<p>{t("home.restaurantsLede")}</p>
+			</div>
+			<div class="cards">
+				{restaurants.map((r) => <RestaurantCard entry={r} lang={lang} />)}
+			</div>
+		</div>
+	</section>
+
+	{
+		signatures.length > 0 && (
+			<section class="section dishes" aria-labelledby="dishes-heading">
+				<div class="wrap">
+					<div class="section-head">
+						<h2 id="dishes-heading">{t("home.signaturesHeading")}</h2>
+					</div>
+				</div>
+				<ul class="dish-strip wrap">
+					{signatures.map(({ dish, restaurant }) => (
+						<li class="dish">
+							<Photo
+								image={dish.image}
+								alt={dish.name}
+								han={dish.name_zh || dish.name}
+								accent={accentOf(restaurant)}
+								ratio="1 / 1"
+								sizes="(min-width: 960px) 280px, 70vw"
+							/>
+							<h3>{dish.name}</h3>
+							{dish.description && <p>{dish.description}</p>}
+							<a class="from" href={localePath(lang, `/restaurants/${restaurant.id}#menu`)}>
+								{restaurant.data.name}
+							</a>
+						</li>
+					))}
+				</ul>
+			</section>
+		)
+	}
+
+	<section class="story" aria-labelledby="story-heading">
+		<div class="wrap story-grid">
+			<p class="story-mark han" lang="zh-Hans" aria-hidden="true"><span>大</span><span>福</span></p>
+			<div>
+				<h2 id="story-heading">{t("home.storyHeading")}</h2>
+				<p class="lede">{t("home.storyBody")}</p>
+				<a class="btn btn-gold" href={localePath(lang, "/about")}>{t("home.storyLink")}</a>
+			</div>
+		</div>
+	</section>
+
+	{
+		promotions.length > 0 && (
+			<section class="section" aria-labelledby="promos-heading">
+				<div class="wrap">
+					<div class="section-head">
+						<h2 id="promos-heading">{t("home.promosHeading")}</h2>
+						<a class="text-link" href={localePath(lang, "/promotions")}>
+							{t("home.promosLink")}
+						</a>
+					</div>
+					<div class="promos">
+						{promotions.map((p) => (
+							<PromoCard entry={p} lang={lang} restaurants={lookup} />
+						))}
+					</div>
+				</div>
+			</section>
+		)
+	}
+
+	{
+		outlets.length > 0 && (
+			<section class="section on-jade" aria-labelledby="visit-heading">
+				<div class="wrap">
+					<div class="section-head">
+						<h2 id="visit-heading">{t("home.visitHeading")}</h2>
+						<a class="text-link" href={localePath(lang, "/contact")}>
+							{t("home.visitLink")}
+						</a>
+					</div>
+					<div class="outlets">
+						{outlets.map(({ outlet, restaurant }) => (
+							<OutletCard
+								outlet={outlet}
+								lang={lang}
+								restaurant={{ name: restaurant.data.name, href: localePath(lang, `/restaurants/${restaurant.id}`) }}
+							/>
+						))}
+					</div>
+				</div>
+			</section>
+		)
+	}
+</Base>
+
+<style>
+	/* ---------- Hero ---------- */
+	.hero {
+		position: relative;
+		overflow: hidden;
+		padding-block: var(--space-5) 0;
+	}
+
+	.hero-photo {
+		position: absolute;
+		inset: 0;
+	}
+	.hero-photo :global(img) {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		opacity: 0.35;
+	}
+
+	.hero-grid {
+		position: relative;
+		display: grid;
+		grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+		gap: var(--space-4);
+		align-items: start;
+	}
+
+	.hero-copy {
+		padding-bottom: var(--space-5);
+	}
+
+	.hero h1 {
+		max-width: 14ch;
+		margin-bottom: var(--space-3);
+	}
+
+	.hero-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		margin-top: var(--space-3);
+	}
+
+	/* A row of signboards hanging from a rail, like a Hong Kong street */
+	.street {
+		position: relative;
+		display: flex;
+		justify-content: flex-end;
+		align-items: flex-start;
+		gap: clamp(1rem, 3vw, 2.5rem);
+		margin: calc(-1 * var(--space-5)) 0 0;
+		padding: 0 0 var(--space-4);
+		list-style: none;
+		align-self: stretch;
+	}
+
+	.street::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: calc(-1 * var(--gutter));
+		height: 10px;
+		background: var(--jade-deep);
+		border-bottom: 2px solid rgb(0 0 0 / 0.25);
+	}
+
+	.street li {
+		position: relative;
+		padding-top: calc(2.2rem + var(--i) * 2.4rem);
+		transform-origin: top center;
+		animation: hang 1.6s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+		animation-delay: calc(0.15s + var(--i) * 0.12s);
+	}
+
+	/* Brackets holding each sign */
+	.street li::before {
+		content: "";
+		position: absolute;
+		top: 8px;
+		left: 50%;
+		width: 3px;
+		height: calc(2.2rem + var(--i) * 2.4rem - 8px);
+		background: linear-gradient(var(--gold-deep), #6b4a08);
+		transform: translateX(-50%);
+	}
+
+	.street a {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.6rem;
+		text-decoration: none;
+	}
+
+	.street a:hover :global(.sign) {
+		filter: brightness(1.12);
+	}
+
+	.street-label {
+		font-size: var(--step--1);
+		font-weight: 700;
+		text-align: center;
+		max-width: 10ch;
+		line-height: 1.25;
+	}
+
+	@keyframes hang {
+		0% {
+			transform: rotate(-7deg);
+			opacity: 0;
+		}
+		25% {
+			opacity: 1;
+		}
+		100% {
+			transform: rotate(0);
+		}
+	}
+
+	/* ---------- Restaurants ---------- */
+	.cards {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+		gap: var(--space-3);
+	}
+
+	/* ---------- Dishes ---------- */
+	.dishes {
+		background: var(--white);
+	}
+
+	.dish-strip {
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: minmax(220px, 1fr);
+		gap: var(--space-3);
+		margin-top: 0;
+		margin-bottom: 0;
+		padding: 0 0 var(--space-2);
+		list-style: none;
+		overflow-x: auto;
+		scroll-snap-type: x mandatory;
+		overscroll-behavior-x: contain;
+	}
+
+	.dish {
+		scroll-snap-align: start;
+	}
+
+	.dish h3 {
+		margin: var(--space-2) 0 0.3rem;
+	}
+
+	.dish p {
+		font-size: var(--step--1);
+		color: var(--ink-soft);
+		margin-bottom: 0.4rem;
+	}
+
+	.from {
+		font-size: var(--step--1);
+		font-weight: 700;
+		color: var(--red);
+	}
+
+	/* ---------- Story ---------- */
+	.story {
+		background: var(--red);
+		color: var(--white);
+		padding-block: var(--space-5);
+		overflow: hidden;
+	}
+
+	.story-grid {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		gap: var(--space-4);
+		align-items: center;
+	}
+
+	.story-mark {
+		display: flex;
+		flex-direction: column;
+		justify-self: start;
+		margin: 0;
+		font-size: clamp(5rem, 3rem + 9vw, 11rem);
+		line-height: 1;
+		color: var(--gold);
+	}
+
+	.story .lede {
+		color: rgb(255 255 255 / 0.9);
+		margin-bottom: var(--space-3);
+	}
+
+	/* ---------- Promotions & visit ---------- */
+	.promos {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+		gap: var(--space-4) var(--space-3);
+	}
+
+	.outlets {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+		gap: var(--space-3);
+	}
+
+	.on-jade .text-link {
+		text-decoration-color: var(--gold);
+	}
+
+	@media (max-width: 860px) {
+		.hero-grid {
+			grid-template-columns: 1fr;
+			gap: 0;
+		}
+
+		.hero-copy {
+			padding-bottom: var(--space-4);
+		}
+
+		.street {
+			order: -1;
+			justify-content: flex-start;
+			margin: calc(-1 * var(--space-5)) calc(-1 * var(--gutter)) var(--space-3);
+			padding-inline: var(--gutter);
+			padding-bottom: 0;
+			overflow-x: auto;
+		}
+
+		.street::before {
+			left: 0;
+			right: 0;
+		}
+
+		.street li {
+			padding-top: calc(1.4rem + var(--i) * 1rem);
+		}
+		.street li::before {
+			height: calc(1.4rem + var(--i) * 1rem - 8px);
+		}
+
+		.story-grid {
+			grid-template-columns: 1fr;
+		}
+		.story-mark {
+			flex-direction: row;
+			font-size: 4.5rem;
+		}
+	}
+</style>

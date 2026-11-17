@@ -1,0 +1,262 @@
+---
+import { getMenuWithCacheHint } from "emdash";
+import { localePath, useTranslations, type Lang } from "../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	/** Current path without the language prefix. */
+	neutral: string;
+	current?: string;
+}
+
+const { lang, neutral } = Astro.props;
+const t = useTranslations(lang);
+
+const menuResult = await getMenuWithCacheHint("primary", { locale: lang } as any);
+if (Astro.cache?.enabled) Astro.cache.set(menuResult.cacheHint);
+
+const fallback = [
+	{ label: t("nav.restaurants"), url: localePath(lang, "/restaurants") },
+	{ label: t("nav.promotions"), url: localePath(lang, "/promotions") },
+	{ label: t("nav.about"), url: localePath(lang, "/about") },
+	{ label: t("nav.contact"), url: localePath(lang, "/contact") },
+];
+const items: { label: string; url: string; target?: string }[] = menuResult.data?.items?.length
+	? menuResult.data.items
+	: fallback;
+
+const here = localePath(lang, neutral);
+const isActive = (url: string) => url !== "/" && (here === url || here.startsWith(`${url}/`));
+const otherLang: Lang = lang === "en" ? "zh" : "en";
+const otherHref = localePath(otherLang, neutral);
+---
+
+<header class="site-header">
+	<div class="bar wrap">
+		<a class="brand" href={localePath(lang, "/")} aria-label={lang === "zh" ? "大福首页" : "DAFU home"}>
+			<span class="seal han" lang="zh-Hans" aria-hidden="true"><span>大</span><span>福</span></span>
+			<span class="wordmark">DAFU</span>
+		</a>
+
+		<button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+			<span class="burger" aria-hidden="true"></span>
+			<span class="menu-label" data-open={t("nav.menu")} data-close={t("nav.close")}>{t("nav.menu")}</span>
+		</button>
+
+		<nav id="site-nav" class="nav" aria-label={lang === "zh" ? "主导航" : "Main"}>
+			<ul>
+				{
+					items.map((item) => (
+						<li>
+							<a
+								href={item.url}
+								target={item.target}
+								rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
+								aria-current={isActive(item.url) ? "page" : undefined}
+							>
+								{item.label}
+							</a>
+						</li>
+					))
+				}
+			</ul>
+			<a class="lang" href={otherHref} hreflang={otherLang === "zh" ? "zh-Hans" : "en"} lang={otherLang === "zh" ? "zh-Hans" : "en"} title={t("lang.switchLabel")}>
+				{t("lang.switch")}
+			</a>
+		</nav>
+	</div>
+</header>
+
+<script>
+	const header = document.querySelector<HTMLElement>(".site-header");
+	const toggle = header?.querySelector<HTMLButtonElement>(".menu-toggle");
+	const label = toggle?.querySelector<HTMLElement>(".menu-label");
+	toggle?.addEventListener("click", () => {
+		const open = toggle.getAttribute("aria-expanded") !== "true";
+		toggle.setAttribute("aria-expanded", String(open));
+		header?.classList.toggle("is-open", open);
+		if (label) label.textContent = open ? label.dataset.close! : label.dataset.open!;
+	});
+	document.addEventListener("keydown", (e) => {
+		if (e.key === "Escape" && header?.classList.contains("is-open")) toggle?.click();
+	});
+</script>
+
+<style>
+	.site-header {
+		position: sticky;
+		top: 0;
+		z-index: 50;
+		background: var(--jade-deep);
+		color: var(--white);
+		border-bottom: 3px solid var(--red);
+	}
+
+	.bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-2);
+		min-height: 64px;
+	}
+
+	.brand {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.65rem;
+		text-decoration: none;
+	}
+
+	.seal {
+		display: inline-flex;
+		flex-direction: column;
+		align-items: center;
+		background: var(--red);
+		color: var(--gold);
+		font-size: 1rem;
+		line-height: 1;
+		padding: 0.35rem 0.3rem;
+		border-radius: 3px;
+		box-shadow:
+			inset 0 0 0 2px var(--red),
+			inset 0 0 0 3px var(--gold);
+	}
+
+	.wordmark {
+		font-weight: 900;
+		font-size: 1.35rem;
+		letter-spacing: 0.14em;
+	}
+
+	.menu-toggle {
+		display: none;
+		align-items: center;
+		gap: 0.6rem;
+		min-height: 44px;
+		padding: 0 0.9rem;
+		border: 1px solid rgb(255 255 255 / 0.35);
+		border-radius: var(--radius);
+		background: transparent;
+		color: inherit;
+		font: inherit;
+		font-weight: 700;
+		cursor: pointer;
+	}
+
+	.burger,
+	.burger::before,
+	.burger::after {
+		display: block;
+		width: 18px;
+		height: 2px;
+		background: currentColor;
+		transition: transform 0.2s;
+	}
+	.burger {
+		position: relative;
+	}
+	.burger::before,
+	.burger::after {
+		content: "";
+		position: absolute;
+		left: 0;
+	}
+	.burger::before {
+		top: -6px;
+	}
+	.burger::after {
+		top: 6px;
+	}
+
+	.nav {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+	}
+
+	.nav ul {
+		display: flex;
+		gap: var(--space-3);
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.nav a {
+		text-decoration: none;
+		font-weight: 600;
+		padding-block: 0.4rem;
+		border-bottom: 2px solid transparent;
+	}
+
+	.nav a:hover,
+	.nav a[aria-current="page"] {
+		border-bottom-color: var(--gold);
+	}
+
+	.nav .lang {
+		border: 1px solid rgb(255 255 255 / 0.4);
+		border-radius: var(--radius);
+		padding: 0.35rem 0.75rem;
+		font-weight: 700;
+	}
+	.nav .lang:hover {
+		background: rgb(255 255 255 / 0.1);
+		border-bottom-color: rgb(255 255 255 / 0.4);
+	}
+
+	@media (max-width: 860px) {
+		.menu-toggle {
+			display: inline-flex;
+		}
+
+		.nav {
+			display: none;
+			position: absolute;
+			inset: 100% 0 auto 0;
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0;
+			padding: var(--space-2) var(--gutter) var(--space-3);
+			background: var(--jade-deep);
+			border-bottom: 3px solid var(--red);
+			max-height: calc(100dvh - 64px);
+			overflow-y: auto;
+		}
+
+		.site-header.is-open .nav {
+			display: flex;
+		}
+
+		.nav ul {
+			flex-direction: column;
+			gap: 0;
+		}
+
+		.nav li a {
+			display: block;
+			padding: 0.9rem 0;
+			font-size: var(--step-1);
+			border-bottom: 1px solid rgb(255 255 255 / 0.12);
+		}
+
+		.nav li a[aria-current="page"] {
+			color: var(--gold);
+		}
+
+		.nav .lang {
+			align-self: flex-start;
+			margin-top: var(--space-2);
+		}
+
+		.site-header.is-open .burger {
+			background: transparent;
+		}
+		.site-header.is-open .burger::before {
+			transform: translateY(6px) rotate(45deg);
+		}
+		.site-header.is-open .burger::after {
+			transform: translateY(-6px) rotate(-45deg);
+		}
+	}
+</style>

@@ -1,0 +1,109 @@
+---
+/** CMS page (About and any page the team adds under Pages). */
+import { getSeoMeta } from "emdash";
+import { PortableText } from "emdash/ui";
+import Base from "../layouts/Base.astro";
+import Photo from "../components/Photo.astro";
+import Signboard from "../components/Signboard.astro";
+import { getLocalizedEntry, hasImage } from "../lib/content";
+import { breadcrumbJsonLd, imageUrl } from "../lib/seo";
+import { localePath, useTranslations, type Lang } from "../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	slug: string;
+}
+
+const { lang, slug } = Astro.props;
+const t = useTranslations(lang);
+const origin = (Astro.site ?? Astro.url).origin;
+
+const entry = await getLocalizedEntry("pages", slug, lang, Astro);
+// The route checks the entry exists before rendering this view.
+if (!entry) throw new Error(`Missing entry: ${slug}`);
+
+const d = entry.data;
+const path = localePath(lang, `/${slug}`);
+const seo = getSeoMeta(entry as any, {
+	siteTitle: "DAFU 大福",
+	siteUrl: origin,
+	path,
+	defaultDescription: d.intro,
+} as any) as any;
+---
+
+<Base
+	lang={lang}
+	title={seo.title?.replace(/\s*\|\s*DAFU 大福$/, "") ?? d.title}
+	description={seo.description ?? d.intro}
+	image={imageUrl(d.hero_image, origin)}
+	jsonLd={[
+		breadcrumbJsonLd(
+			[
+				{ name: t("breadcrumb.home"), path: localePath(lang, "/") },
+				{ name: d.title, path },
+			],
+			origin,
+		),
+	]}
+>
+	<header class="page-head on-jade">
+		<div class="wrap head-grid">
+			<div>
+				<h1 {...entry.edit?.title}>{d.title}</h1>
+				{d.intro && <p class="lede" {...entry.edit?.intro}>{d.intro}</p>}
+			</div>
+			{slug === "about" && <Signboard text="大福" accent="red" size="lg" class="head-sign" />}
+		</div>
+	</header>
+
+	<section class="section">
+		<div class:list={["wrap", "body", { "has-photo": hasImage(d.hero_image) }]}>
+			<div class="prose" {...entry.edit?.content}>
+				<PortableText value={d.content} />
+			</div>
+			{
+				hasImage(d.hero_image) && (
+					<Photo image={d.hero_image} alt={d.title} ratio="4 / 5" sizes="(min-width: 900px) 420px, 100vw" />
+				)
+			}
+		</div>
+	</section>
+</Base>
+
+<style>
+	.page-head {
+		padding-block: var(--space-5) var(--space-4);
+		overflow: hidden;
+	}
+
+	.head-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: var(--space-4);
+		align-items: start;
+	}
+
+	.head-grid :global(.head-sign) {
+		margin-top: calc(-1 * var(--space-5));
+	}
+
+	.body.has-photo {
+		display: grid;
+		grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+		gap: var(--space-5);
+		align-items: start;
+	}
+
+	@media (max-width: 760px) {
+		.head-grid {
+			grid-template-columns: 1fr;
+		}
+		.head-grid :global(.head-sign) {
+			display: none;
+		}
+		.body.has-photo {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

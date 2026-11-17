@@ -1,0 +1,177 @@
+---
+import { getSeoMeta } from "emdash";
+import { PortableText } from "emdash/ui";
+import Base from "../layouts/Base.astro";
+import Photo from "../components/Photo.astro";
+import { getLocalizedEntry, getRestaurants, restaurantLookup } from "../lib/content";
+import { breadcrumbJsonLd, imageUrl } from "../lib/seo";
+import { formatDate, localePath, useTranslations, type Lang, type UIKey } from "../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	slug: string;
+}
+
+const { lang, slug } = Astro.props;
+const t = useTranslations(lang);
+const origin = (Astro.site ?? Astro.url).origin;
+
+const entry = await getLocalizedEntry("promotions", slug, lang, Astro);
+// The route checks the entry exists before rendering this view.
+if (!entry) throw new Error(`Missing entry: ${slug}`);
+const restaurants = await getRestaurants(lang, Astro);
+const lookup = restaurantLookup(restaurants);
+
+const d = entry.data;
+const r = lookup.get(d.restaurant);
+const kind = ["promotion", "opening", "announcement"].includes(d.kind) ? d.kind : "promotion";
+const from = formatDate(d.valid_from, lang);
+const until = formatDate(d.valid_until, lang);
+const expired = d.valid_until && new Date(d.valid_until).getTime() < Date.now();
+
+const seo = getSeoMeta(entry as any, {
+	siteTitle: "DAFU 大福",
+	siteUrl: origin,
+	path: localePath(lang, `/promotions/${slug}`),
+	defaultDescription: d.excerpt,
+} as any) as any;
+
+const path = localePath(lang, `/promotions/${slug}`);
+const jsonLd: Record<string, unknown>[] = [
+	{
+		"@context": "https://schema.org",
+		"@type": "NewsArticle",
+		headline: d.title,
+		description: d.excerpt,
+		datePublished: d.publishedAt ? new Date(d.publishedAt).toISOString() : undefined,
+		dateModified: d.updatedAt ? new Date(d.updatedAt).toISOString() : undefined,
+		...(imageUrl(d.image, origin) ? { image: imageUrl(d.image, origin) } : {}),
+		publisher: { "@id": `${origin}/#organization` },
+		mainEntityOfPage: new URL(path, origin).href,
+	},
+	breadcrumbJsonLd(
+		[
+			{ name: t("breadcrumb.home"), path: localePath(lang, "/") },
+			{ name: t("nav.promotions"), path: localePath(lang, "/promotions") },
+			{ name: d.title, path },
+		],
+		origin,
+	),
+];
+---
+
+<Base
+	lang={lang}
+	title={seo.title?.replace(/\s*\|\s*DAFU 大福$/, "") ?? d.title}
+	description={seo.description ?? d.excerpt}
+	image={imageUrl(d.image, origin)}
+	pageType="article"
+	jsonLd={jsonLd}
+	noindex={!!expired}
+>
+	<article class="section">
+		<div class="wrap layout">
+			<div class="copy">
+				<p class="back"><a href={localePath(lang, "/promotions")}>{t("promotions.back")}</a></p>
+				<p class="kind">
+					{t(`promotions.kind.${kind}` as UIKey)}
+					<span>
+						{r ? (
+							<a href={localePath(lang, `/restaurants/${d.restaurant}`)}>{r.name}</a>
+						) : (
+							t("promotions.allRestaurants")
+						)}
+					</span>
+				</p>
+				<h1 {...entry.edit?.title}>{d.title}</h1>
+				{d.excerpt && <p class="lede">{d.excerpt}</p>}
+				{
+					(from || until) && (
+						<p class="dates">
+							{until ? `${t("promotions.validUntil")} ${until}` : `${from}`}
+						</p>
+					)
+				}
+				<div class="prose" {...entry.edit?.content}>
+					<PortableText value={d.content} />
+				</div>
+				{
+					r && (
+						<a class="btn btn-red" href={localePath(lang, `/restaurants/${d.restaurant}#visit`)}>
+							{t("restaurants.directions")}
+						</a>
+					)
+				}
+			</div>
+			<Photo
+				image={d.image}
+				alt={d.title}
+				han={r?.name_zh ?? "大福"}
+				accent={r?.accent ?? "jade"}
+				ratio="4 / 5"
+				loading="eager"
+				sizes="(min-width: 900px) 440px, 100vw"
+				class="art"
+			/>
+		</div>
+	</article>
+</Base>
+
+<style>
+	.layout {
+		display: grid;
+		grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+		gap: var(--space-5);
+		align-items: start;
+	}
+
+	.back {
+		font-size: var(--step--1);
+		font-weight: 600;
+	}
+
+	.kind {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.6rem;
+		font-weight: 700;
+		color: var(--red);
+		margin-bottom: var(--space-1);
+	}
+	.kind span {
+		color: var(--ink-soft);
+		font-weight: 500;
+	}
+
+	h1 {
+		font-size: var(--step-3);
+	}
+
+	.dates {
+		display: inline-block;
+		padding: 0.4rem 0.8rem;
+		background: var(--gold);
+		border-radius: var(--radius);
+		font-weight: 700;
+	}
+
+	.prose {
+		margin-block: var(--space-3);
+	}
+
+	.layout :global(.art) {
+		position: sticky;
+		top: 6rem;
+	}
+
+	@media (max-width: 860px) {
+		.layout {
+			grid-template-columns: 1fr;
+		}
+		.layout :global(.art) {
+			order: -1;
+			position: static;
+			aspect-ratio: 16 / 10 !important;
+		}
+	}
+</style>

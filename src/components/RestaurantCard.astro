@@ -1,0 +1,147 @@
+---
+import Photo from "./Photo.astro";
+import Signboard from "./Signboard.astro";
+import { accentOf, outletsOf } from "../lib/content";
+import { localePath, useTranslations, type Lang } from "../i18n/ui";
+
+interface Props {
+	entry: { id: string; data: Record<string, any>; edit?: any };
+	lang: Lang;
+	headingLevel?: "h2" | "h3";
+}
+
+const { entry, lang, headingLevel = "h3" } = Astro.props;
+const t = useTranslations(lang);
+const accent = accentOf(entry);
+const href = localePath(lang, `/restaurants/${entry.id}`);
+const outlet = outletsOf(entry)[0];
+const Heading = headingLevel;
+---
+
+<article class:list={["card", `card-${accent}`]}>
+	<div class="media">
+		<Photo
+			image={entry.data.hero_image}
+			alt={entry.data.name}
+			han={entry.data.name_zh}
+			caption={entry.data.tagline}
+			accent={accent}
+			ratio="4 / 5"
+			sizes="(min-width: 960px) 380px, (min-width: 640px) 50vw, 100vw"
+		/>
+		<Signboard text={entry.data.name_zh} accent={accent} size="sm" class="card-sign" />
+	</div>
+	<div class="body">
+		<Heading class="name"><a href={href}>{entry.data.name}</a></Heading>
+		{entry.data.tagline && <p class="tagline">{entry.data.tagline}</p>}
+		{
+			outlet?.hours && (
+				<p class="meta">
+					<span class="visually-hidden">{t("restaurants.hours")}: </span>
+					{outlet.hours}
+				</p>
+			)
+		}
+		<span class="cta" aria-hidden="true">{t("restaurants.view")}</span>
+	</div>
+</article>
+
+<style>
+	.card {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		background: var(--white);
+		border-radius: var(--radius);
+		border-top: 6px solid var(--card-accent, var(--red));
+		overflow: hidden;
+	}
+
+	.card-gold {
+		--card-accent: var(--gold);
+	}
+	.card-neon {
+		--card-accent: var(--neon);
+	}
+	.card-jade {
+		--card-accent: var(--jade);
+	}
+
+	.media {
+		position: relative;
+	}
+
+	.media :global(.photo) {
+		border-radius: 0;
+	}
+
+	.media :global(.card-sign) {
+		position: absolute;
+		top: 0;
+		right: 1rem;
+		border-radius: 0 0 3px 3px;
+	}
+
+	.body {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		padding: var(--space-3);
+		flex: 1;
+	}
+
+	.name {
+		font-size: var(--step-2);
+		margin: 0;
+	}
+
+	.name a {
+		text-decoration: none;
+	}
+
+	/* Whole card is clickable via the heading link */
+	.name a::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+	}
+
+	.tagline {
+		color: var(--ink-soft);
+		margin: 0;
+	}
+
+	.meta {
+		font-size: var(--step--1);
+		font-weight: 600;
+		margin: 0.25rem 0 0;
+	}
+
+	.cta {
+		margin-top: auto;
+		padding-top: var(--space-2);
+		font-weight: 700;
+		text-decoration: underline;
+		text-decoration-color: var(--card-accent, var(--red));
+		text-decoration-thickness: 2px;
+		text-underline-offset: 0.25em;
+	}
+
+	.card:hover .cta {
+		text-decoration-thickness: 3px;
+	}
+
+	@media (max-width: 640px) {
+		.media :global(.photo) {
+			aspect-ratio: 16 / 10 !important;
+		}
+	}
+
+	.card:focus-within {
+		outline: 3px solid var(--gold);
+		outline-offset: 3px;
+	}
+	.card :focus-visible {
+		outline: none;
+	}
+</style>

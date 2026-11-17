@@ -1,0 +1,144 @@
+---
+import { getRestaurants } from "../lib/content";
+import { localePath, useTranslations, type Lang } from "../i18n/ui";
+
+interface Props {
+	lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const restaurants = await getRestaurants(lang, Astro);
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer on-jade">
+	<div class="wrap grid">
+		<div class="intro">
+			<p class="brand">
+				<span class="han" lang="zh-Hans">大福</span>
+				<span class="word">DAFU</span>
+			</p>
+			<p>{t("footer.tagline")}</p>
+		</div>
+
+		<nav aria-label={t("footer.restaurants")}>
+			<h2>{t("footer.restaurants")}</h2>
+			<ul>
+				{
+					restaurants.map((r) => (
+						<li>
+							<a href={localePath(lang, `/restaurants/${r.id}`)}>
+								{r.data.name}
+								{lang === "en" && (
+									<span class="zh" lang="zh-Hans">
+										{r.data.name_zh}
+									</span>
+								)}
+							</a>
+						</li>
+					))
+				}
+			</ul>
+		</nav>
+
+		<nav aria-label={t("footer.explore")}>
+			<h2>{t("footer.explore")}</h2>
+			<ul>
+				<li><a href={localePath(lang, "/promotions")}>{t("nav.promotions")}</a></li>
+				<li><a href={localePath(lang, "/about")}>{t("nav.about")}</a></li>
+				<li><a href={localePath(lang, "/contact")}>{t("nav.contact")}</a></li>
+				<li>
+					<a href={localePath(lang === "en" ? "zh" : "en", "/")} lang={lang === "en" ? "zh-Hans" : "en"}>
+						{lang === "en" ? "中文网站" : "English site"}
+					</a>
+				</li>
+			</ul>
+		</nav>
+	</div>
+	<div class="wrap legal">
+		<p>© {year} DAFU 大福. {t("footer.rights")}</p>
+	</div>
+</footer>
+
+<style>
+	.site-footer {
+		padding-block: var(--space-5) var(--space-3);
+		border-top: 6px solid var(--red);
+	}
+
+	.grid {
+		display: grid;
+		grid-template-columns: 1.4fr 1fr 1fr;
+		gap: var(--space-4);
+	}
+
+	.brand {
+		display: flex;
+		align-items: baseline;
+		gap: 0.6rem;
+		margin-bottom: var(--space-1);
+	}
+	.brand .han {
+		font-size: 2.2rem;
+		color: var(--gold);
+	}
+	.brand .word {
+		font-weight: 900;
+		letter-spacing: 0.14em;
+		font-size: 1.3rem;
+	}
+
+	.intro p:last-child {
+		color: rgb(255 255 255 / 0.8);
+		max-width: 36ch;
+	}
+
+	h2 {
+		font-size: var(--step-0);
+		color: var(--gold);
+		margin-bottom: var(--space-2);
+		letter-spacing: 0;
+	}
+
+	ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: 0.55rem;
+	}
+
+	a {
+		text-decoration: none;
+	}
+	a:hover {
+		text-decoration: underline;
+	}
+
+	.zh {
+		margin-left: 0.4rem;
+		opacity: 0.7;
+	}
+
+	.legal {
+		margin-top: var(--space-4);
+		padding-top: var(--space-2);
+		border-top: 1px solid rgb(255 255 255 / 0.15);
+		font-size: var(--step--1);
+		color: rgb(255 255 255 / 0.7);
+	}
+
+	@media (max-width: 760px) {
+		.grid {
+			grid-template-columns: 1fr 1fr;
+		}
+		.intro {
+			grid-column: 1 / -1;
+		}
+		.zh {
+			display: block;
+			margin-left: 0;
+		}
+	}
+</style>

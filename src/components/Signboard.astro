@@ -1,0 +1,108 @@
+---
+/**
+ * A vertical Hong Kong street signboard. Renders the Chinese name top-to-bottom
+ * in a framed panel; the Sing Bar accent becomes a neon tube sign.
+ */
+import type { Accent } from "../lib/content";
+
+interface Props {
+	text: string;
+	accent?: Accent;
+	size?: "sm" | "md" | "lg";
+	/** Accessible label (e.g. the English name) — the sign is then announced as an image. */
+	label?: string;
+	class?: string;
+}
+
+const { text, accent = "red", size = "md", label, class: className } = Astro.props;
+
+// Characters are stacked in a column instead of using writing-mode: web CJK
+// subsets often ship without vertical metrics, which makes vertical text
+// overlap. Runs of Latin letters/digits stay together on one line.
+const glyphs = (text ?? "").match(/[A-Za-z0-9&'’.\-]+|\S/gu) ?? [];
+---
+
+<span
+	class:list={["sign", `sign-${accent}`, `sign-${size}`, className]}
+	lang="zh-Hans"
+	aria-label={label}
+	role={label ? "img" : undefined}
+>
+	<span class="sign-text han" aria-hidden="true">
+		{glyphs.map((g) => <span class:list={["g", { latin: g.length > 1 }]}>{g}</span>)}
+	</span>
+	{!label && <span class="visually-hidden">{text}</span>}
+</span>
+
+<style>
+	.sign {
+		--sign-bg: var(--red);
+		--sign-fg: var(--gold);
+		--sign-frame: var(--gold);
+		display: inline-flex;
+		padding: 0.5em 0.3em;
+		background: var(--sign-bg);
+		color: var(--sign-fg);
+		border-radius: 3px;
+		box-shadow:
+			inset 0 0 0 3px var(--sign-bg),
+			inset 0 0 0 5px var(--sign-frame);
+		line-height: 1.08;
+	}
+
+	.sign-text {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.g {
+		display: block;
+		width: 1.1em;
+		text-align: center;
+	}
+
+	.g.latin {
+		width: auto;
+		margin-block: 0.2em;
+		font-size: 0.42em;
+		font-family: var(--font-sans);
+		font-weight: 800;
+		letter-spacing: 0.04em;
+	}
+
+	.sign-sm {
+		font-size: 1.05rem;
+	}
+	.sign-md {
+		font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.1rem);
+	}
+	.sign-lg {
+		font-size: clamp(2rem, 1.3rem + 3vw, 3.4rem);
+	}
+
+	.sign-gold {
+		--sign-bg: var(--gold);
+		--sign-fg: var(--red-deep);
+		--sign-frame: var(--red-deep);
+	}
+
+	.sign-jade {
+		--sign-bg: var(--jade-deep);
+		--sign-fg: var(--white);
+		--sign-frame: var(--gold);
+	}
+
+	.sign-neon {
+		--sign-bg: var(--night);
+		--sign-fg: #ffe3ef;
+		--sign-frame: var(--neon);
+		text-shadow:
+			0 0 4px var(--neon),
+			0 0 14px var(--neon);
+		box-shadow:
+			inset 0 0 0 3px var(--night),
+			inset 0 0 0 5px var(--neon),
+			0 0 18px rgb(255 61 139 / 0.45);
+	}
+</style>

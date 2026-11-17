@@ -1,0 +1,132 @@
+---
+import { Font } from "astro:assets";
+import { getSiteSettingsWithCacheHint } from "emdash";
+import { EmDashHead, EmDashBodyStart, EmDashBodyEnd } from "emdash/ui";
+import { createPublicPageContext } from "emdash/page";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import { HTML_LANG, LANGS, OG_LOCALE, localePath, neutralPath, useTranslations, type Lang } from "../i18n/ui";
+import "../styles/global.css";
+
+interface Props {
+	lang: Lang;
+	/** Page title without the site name. Omit on the homepage. */
+	title?: string;
+	description?: string | null;
+	/** Absolute or root-relative social image URL. */
+	image?: string | null;
+	pageType?: "website" | "article";
+	/** Extra JSON-LD objects for this page. */
+	jsonLd?: Record<string, unknown>[];
+	/** Set false for pages that exist in only one language. */
+	alternates?: boolean;
+	noindex?: boolean;
+	/** Restaurant accent to tint the header CTA on restaurant pages. */
+	current?: string;
+}
+
+const {
+	lang,
+	title,
+	description,
+	image,
+	pageType = "website",
+	jsonLd = [],
+	alternates = true,
+	noindex = false,
+	current,
+} = Astro.props;
+const t = useTranslations(lang);
+
+const settingsResult = await getSiteSettingsWithCacheHint();
+if (Astro.cache?.enabled) Astro.cache.set(settingsResult.cacheHint);
+const settings = settingsResult.data as { title?: string; favicon?: { url?: string }; logo?: { url?: string; alt?: string } };
+
+const siteName = "DAFU 大福";
+const fullTitle = title ? `${title} | ${siteName}` : `${siteName} — ${t("home.title")}`;
+const pageDescription = description || t("site.description");
+
+const origin = (Astro.site ?? Astro.url).origin;
+const neutral = neutralPath(Astro.url.pathname);
+const canonical = new URL(localePath(lang, neutral), origin).href;
+const altLinks = alternates
+	? [
+			...LANGS.map((l) => ({ hreflang: HTML_LANG[l], href: new URL(localePath(l, neutral), origin).href })),
+			{ hreflang: "x-default", href: new URL(neutral, origin).href },
+		]
+	: [];
+const ogImage = image ? new URL(image, origin).href : null;
+
+const pageCtx = createPublicPageContext({
+	Astro,
+	kind: "custom",
+	pageType,
+	title: fullTitle,
+	pageTitle: title ?? siteName,
+	description: pageDescription,
+	canonical,
+	image: ogImage,
+	siteName,
+	siteUrl: origin,
+	seo: noindex ? { robots: "noindex, follow" } : undefined,
+});
+
+const organization = {
+	"@context": "https://schema.org",
+	"@type": "Organization",
+	"@id": `${origin}/#organization`,
+	name: siteName,
+	alternateName: ["DAFU", "大福"],
+	url: origin,
+	...(settings?.logo?.url ? { logo: new URL(settings.logo.url, origin).href } : {}),
+};
+const graphs = [organization, ...jsonLd];
+---
+
+<!doctype html>
+<html lang={HTML_LANG[lang]}>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#0e5a4a" />
+		<title>{fullTitle}</title>
+		{!settings?.favicon?.url && <link rel="icon" href="/favicon.svg" type="image/svg+xml" />}
+		<Font cssVariable="--font-sans" preload />
+		<Font cssVariable="--font-han" />
+		{altLinks.map((a) => <link rel="alternate" hreflang={a.hreflang} href={a.href} />)}
+		<meta property="og:locale" content={OG_LOCALE[lang]} />
+		{
+			LANGS.filter((l) => l !== lang).map((l) => (
+				<meta property="og:locale:alternate" content={OG_LOCALE[l]} />
+			))
+		}
+		<EmDashHead page={pageCtx} />
+		{graphs.map((g) => <script type="application/ld+json" set:html={JSON.stringify(g)} />)}
+	</head>
+	<body>
+		<EmDashBodyStart page={pageCtx} />
+		<a class="skip" href="#main">{t("nav.skip")}</a>
+		<Header lang={lang} neutral={neutral} current={current} />
+		<main id="main">
+			<slot />
+		</main>
+		<Footer lang={lang} />
+		<EmDashBodyEnd page={pageCtx} />
+	</body>
+</html>
+
+<style>
+	.skip {
+		position: absolute;
+		left: 1rem;
+		top: -4rem;
+		z-index: 100;
+		padding: 0.6rem 1rem;
+		background: var(--gold);
+		color: var(--ink);
+		font-weight: 700;
+	}
+	.skip:focus {
+		top: 1rem;
+	}
+</style>

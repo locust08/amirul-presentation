@@ -1,0 +1,128 @@
+---
+import Photo from "./Photo.astro";
+import { formatDate, localePath, useTranslations, type Lang, type UIKey } from "../i18n/ui";
+import type { Accent } from "../lib/content";
+
+interface Props {
+	entry: { id: string; data: Record<string, any> };
+	lang: Lang;
+	/** Restaurant slug → { name, accent } for labelling. */
+	restaurants: Map<string, { name: string; name_zh?: string; accent: Accent }>;
+	layout?: "stack" | "row";
+}
+
+const { entry, lang, restaurants, layout = "stack" } = Astro.props;
+const t = useTranslations(lang);
+const kind = (["promotion", "opening", "announcement"].includes(entry.data.kind) ? entry.data.kind : "promotion") as string;
+const r = restaurants.get(entry.data.restaurant);
+const accent: Accent = r?.accent ?? "jade";
+const until = formatDate(entry.data.valid_until, lang);
+const href = localePath(lang, `/promotions/${entry.id}`);
+---
+
+<article class:list={["promo", `promo-${layout}`]}>
+	<Photo
+		image={entry.data.image}
+		alt={entry.data.title}
+		han={r?.name_zh ?? "大福"}
+		accent={accent}
+		ratio="16 / 10"
+		sizes="(min-width: 960px) 400px, 100vw"
+	/>
+	<div class="body">
+		<p class="kind" data-kind={kind}>
+			{t(`promotions.kind.${kind}` as UIKey)}
+			<span class="at">{r ? r.name : t("promotions.allRestaurants")}</span>
+		</p>
+		<h3><a href={href}>{entry.data.title}</a></h3>
+		{entry.data.excerpt && <p class="excerpt">{entry.data.excerpt}</p>}
+		{until && <p class="until">{t("promotions.validUntil")} {until}</p>}
+	</div>
+</article>
+
+<style>
+	.promo {
+		position: relative;
+		display: grid;
+		gap: var(--space-2);
+		align-content: start;
+	}
+
+	.promo-row {
+		grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+		gap: var(--space-3);
+		align-items: start;
+	}
+
+	h3 {
+		margin: 0 0 0.4rem;
+		font-size: var(--step-1);
+	}
+
+	h3 a {
+		text-decoration: none;
+	}
+	h3 a::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+	}
+	.promo:hover h3 a {
+		text-decoration: underline;
+		text-decoration-color: var(--red);
+	}
+
+	.kind {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		align-items: center;
+		margin: 0 0 0.4rem;
+		font-size: var(--step--1);
+		font-weight: 700;
+	}
+
+	.kind::before {
+		content: "";
+		width: 10px;
+		height: 10px;
+		border-radius: 2px;
+		background: var(--red);
+	}
+	.kind[data-kind="opening"]::before {
+		background: var(--gold-deep);
+	}
+	.kind[data-kind="announcement"]::before {
+		background: var(--jade);
+	}
+
+	.at {
+		font-weight: 500;
+		color: var(--ink-soft);
+	}
+
+	.excerpt {
+		margin: 0;
+		color: var(--ink-soft);
+	}
+
+	.until {
+		margin: 0.5rem 0 0;
+		font-size: var(--step--1);
+		font-weight: 600;
+	}
+
+	.promo:focus-within {
+		outline: 3px solid var(--gold);
+		outline-offset: 4px;
+	}
+	.promo :focus-visible {
+		outline: none;
+	}
+
+	@media (max-width: 640px) {
+		.promo-row {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>
