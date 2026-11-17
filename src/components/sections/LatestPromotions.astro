@@ -1,0 +1,51 @@
+---
+/** The newest live promotions and news, as cards. */
+import PromoCard from "../PromoCard.astro";
+import { getPromotions, getRestaurants, restaurantLookup } from "../../lib/content";
+import { localePath, type Lang } from "../../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	heading?: string;
+	/** Link to the full promotions page (leave empty to hide) */
+	linkLabel?: string;
+	/** How many items to show */
+	limit?: number;
+}
+
+const { lang, heading, linkLabel, limit = 3 } = Astro.props;
+const [promotions, restaurants] = await Promise.all([getPromotions(lang, Astro, limit), getRestaurants(lang, Astro)]);
+const lookup = restaurantLookup(restaurants);
+---
+
+{
+	promotions.length > 0 && (
+		<section class="section" aria-label={heading || undefined}>
+			<div class="wrap">
+				{(heading || linkLabel) && (
+					<div class="section-head">
+						{heading && <h2>{heading}</h2>}
+						{linkLabel && (
+							<a class="text-link" href={localePath(lang, "/promotions")}>
+								{linkLabel}
+							</a>
+						)}
+					</div>
+				)}
+				<div class="promos">
+					{promotions.map((p) => (
+						<PromoCard entry={p} lang={lang} restaurants={lookup} />
+					))}
+				</div>
+			</div>
+		</section>
+	)
+}
+
+<style>
+	.promos {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+		gap: var(--space-4) var(--space-3);
+	}
+</style>

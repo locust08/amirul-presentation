@@ -1,0 +1,172 @@
+---
+/** Restaurant page header: signboard, name, tagline, key facts, buttons and main photo. */
+import Signboard from "../Signboard.astro";
+import Photo from "../Photo.astro";
+import { accentOf, directionsUrl, outletsOf, type AnyEntry } from "../../lib/content";
+import { localePath, useTranslations, type Lang } from "../../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	/** The restaurant entry, loaded by the page */
+	entry: AnyEntry;
+	/** Label of the button that jumps to the menu */
+	menuLabel?: string;
+}
+
+const { lang, entry, menuLabel } = Astro.props;
+const t = useTranslations(lang);
+const d = entry.data;
+const accent = accentOf(entry);
+const primary = outletsOf(entry)[0];
+---
+
+<header class="r-hero">
+	<div class="wrap r-hero-grid">
+		<div class="r-sign" {...entry.edit?.name_zh}>
+			<Signboard text={d.name_zh} accent={accent} size="lg" />
+		</div>
+		<div class="r-intro">
+			<nav class="crumbs" aria-label="Breadcrumb">
+				<a href={localePath(lang, "/restaurants")}>{t("nav.restaurants")}</a>
+			</nav>
+			<h1 {...entry.edit?.name}>{d.name}</h1>
+			{d.tagline && <p class="lede" {...entry.edit?.tagline}>{d.tagline}</p>}
+			<ul class="facts">
+				{
+					primary?.hours && (
+						<li {...entry.edit?.outlets}>
+							<span class="fact-label">{t("restaurants.hours")}</span>
+							<span class="pre">{primary.hours}</span>
+						</li>
+					)
+				}
+				{
+					d.price_range && (
+						<li>
+							<span class="fact-label">{t("restaurants.priceRange")}</span>
+							<span {...entry.edit?.price_range}>{d.price_range}</span>
+						</li>
+					)
+				}
+				{
+					primary?.area && (
+						<li>
+							<span class="fact-label">{t("restaurants.address")}</span>
+							{lang === "zh" && primary.area === "Genting Highlands" ? t("common.genting") : primary.area}
+						</li>
+					)
+				}
+			</ul>
+			<div class="r-actions">
+				<a class="btn btn-gold" href="#menu">{menuLabel || t("restaurants.menu")}</a>
+				{
+					primary && (
+						<a class="btn btn-line" href={directionsUrl(primary)} target="_blank" rel="noopener noreferrer">
+							{t("restaurants.directions")}
+						</a>
+					)
+				}
+			</div>
+		</div>
+		<div class="r-photo" {...entry.edit?.hero_image}>
+			<Photo
+				image={d.hero_image}
+				alt={d.name}
+				han={d.name_zh}
+				caption={d.tagline}
+				accent={accent}
+				ratio="4 / 5"
+				loading="eager"
+				sizes="(min-width: 960px) 420px, 100vw"
+			/>
+		</div>
+	</div>
+</header>
+
+<style>
+	.r-hero {
+		background: var(--hero-bg, var(--jade-deep));
+		background-image: var(--tile);
+		color: var(--white);
+		padding-block: var(--space-4) var(--space-5);
+		border-bottom: 6px solid var(--accent, var(--red));
+	}
+
+	.r-hero-grid {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) minmax(0, 0.8fr);
+		gap: var(--space-4);
+		align-items: start;
+	}
+
+	.r-sign {
+		margin-top: calc(-1 * var(--space-4));
+	}
+
+	.crumbs {
+		font-size: var(--step--1);
+		font-weight: 600;
+		margin-bottom: var(--space-2);
+	}
+	.crumbs a {
+		color: rgb(255 255 255 / 0.8);
+	}
+
+	.r-intro h1 {
+		margin-bottom: var(--space-2);
+	}
+
+	.r-intro .lede {
+		color: rgb(255 255 255 / 0.85);
+	}
+
+	.facts {
+		display: grid;
+		gap: 0.75rem;
+		margin: var(--space-3) 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.facts li {
+		display: grid;
+		grid-template-columns: 9rem 1fr;
+		gap: 1rem;
+		padding-bottom: 0.75rem;
+		border-bottom: 1px solid rgb(255 255 255 / 0.15);
+	}
+
+	.fact-label {
+		font-size: var(--step--1);
+		font-weight: 700;
+		color: var(--gold);
+		padding-top: 0.15rem;
+	}
+
+	.pre {
+		white-space: pre-line;
+	}
+
+	.r-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+	}
+
+	@media (max-width: 860px) {
+		.r-hero-grid {
+			grid-template-columns: auto minmax(0, 1fr);
+			gap: var(--space-3);
+		}
+		.r-photo {
+			grid-column: 1 / -1;
+		}
+		.r-sign :global(.sign) {
+			font-size: 1.6rem;
+		}
+		.facts li {
+			grid-template-columns: 1fr;
+			gap: 0.1rem;
+		}
+	}
+</style>

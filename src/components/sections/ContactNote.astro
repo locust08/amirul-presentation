@@ -1,0 +1,48 @@
+---
+/**
+ * "Group enquiries" block. The text comes from the CMS page `contact`
+ * (editable in place); `fallback` is shown until that page has content.
+ */
+import { PortableText } from "emdash/ui";
+import { getLocalizedEntry } from "../../lib/content";
+import type { Lang } from "../../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	heading: string;
+	/** Shown when the CMS contact page has no content */
+	fallback?: string;
+}
+
+const { lang, heading, fallback } = Astro.props;
+const page = await getLocalizedEntry("pages", "contact", lang, Astro);
+const content = page?.data.content;
+---
+
+<section class="section note">
+	<div class="wrap">
+		<div class="inner">
+			<h2>{heading}</h2>
+			{
+				Array.isArray(content) && content.length > 0 ? (
+					<div class="prose">
+						<PortableText value={content} />
+					</div>
+				) : (
+					fallback && <p>{fallback}</p>
+				)
+			}
+		</div>
+	</div>
+</section>
+
+<style>
+	.note {
+		background: var(--white);
+	}
+
+	.inner {
+		max-width: 760px;
+		margin-inline: auto;
+	}
+</style>

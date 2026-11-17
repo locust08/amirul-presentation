@@ -1,0 +1,40 @@
+---
+/**
+ * Wraps a restaurant page's sections and sets its signboard colour
+ * (--accent / --accent-ink) for everything inside.
+ */
+import { accentOf, type AnyEntry } from "../../lib/content";
+
+interface Props {
+	/** The restaurant entry, loaded by the page */
+	entry: AnyEntry;
+}
+
+const { entry } = Astro.props;
+const accent = accentOf(entry);
+---
+
+<div class:list={["restaurant-theme", `accent-${accent}`]}>
+	<slot />
+</div>
+
+<style>
+	.restaurant-theme {
+		--accent: var(--red);
+		--accent-ink: var(--white);
+		--hero-bg: var(--jade-deep);
+	}
+	.accent-gold {
+		--accent: var(--gold);
+		--accent-ink: var(--ink);
+	}
+	.accent-neon {
+		--accent: var(--neon);
+		--accent-ink: var(--night);
+		--hero-bg: var(--night);
+	}
+	.accent-jade {
+		--accent: var(--jade);
+		--accent-ink: var(--white);
+	}
+</style>

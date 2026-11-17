@@ -10,3 +10,7 @@ data.db-*
 .env
 .env.*
 !.env.example
+
+# Stacki Studio (local editor state; the studio/ source itself is committed)
+astro.studio.config.mjs
+.stacki/studio/

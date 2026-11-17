@@ -1,0 +1,43 @@
+---
+/** Live promotions for this restaurant (and group-wide ones). */
+import PromoCard from "../PromoCard.astro";
+import { getPromotions, getRestaurants, restaurantLookup, type AnyEntry } from "../../lib/content";
+import type { Lang } from "../../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	/** The restaurant entry, loaded by the page */
+	entry: AnyEntry;
+	heading?: string;
+	/** How many items to show */
+	limit?: number;
+}
+
+const { lang, entry, heading, limit = 2 } = Astro.props;
+const [promotions, restaurants] = await Promise.all([getPromotions(lang, Astro), getRestaurants(lang, Astro)]);
+const lookup = restaurantLookup(restaurants);
+const own = promotions.filter((p) => p.data.restaurant === entry.id || p.data.restaurant === "all").slice(0, limit);
+---
+
+{
+	own.length > 0 && (
+		<section class="section" aria-label={heading || undefined}>
+			<div class="wrap">
+				{heading && <h2>{heading}</h2>}
+				<div class="promos">
+					{own.map((p) => (
+						<PromoCard entry={p} lang={lang} restaurants={lookup} layout="row" />
+					))}
+				</div>
+			</div>
+		</section>
+	)
+}
+
+<style>
+	.promos {
+		display: grid;
+		gap: var(--space-4);
+		margin-top: var(--space-3);
+	}
+</style>

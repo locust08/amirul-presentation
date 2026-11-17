@@ -1,0 +1,95 @@
+---
+/**
+ * Every outlet of every restaurant, grouped by area. Used as a compact band
+ * on the homepage and, with maps, on the contact page.
+ */
+import OutletCard from "../OutletCard.astro";
+import { getRestaurants, outletsOf } from "../../lib/content";
+import { localePath, type Lang } from "../../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	/** Heading for a single-band layout (homepage). Leave empty to title each area instead. */
+	heading?: string;
+	/** Link to the contact page (leave empty to hide) */
+	linkLabel?: string;
+	/** Only show one area, e.g. "Genting Highlands" */
+	area?: string;
+	/** Show a map beside each outlet (maps need internet access in the browser) */
+	maps?: boolean;
+	/** Jade background band */
+	dark?: boolean;
+}
+
+const { lang, heading, linkLabel, area, maps = false, dark = true } = Astro.props;
+const restaurants = await getRestaurants(lang, Astro);
+
+const groups = new Map<string, { outlet: ReturnType<typeof outletsOf>[number]; restaurant: (typeof restaurants)[number] }[]>();
+for (const r of restaurants) {
+	for (const outlet of outletsOf(r)) {
+		const a = outlet.area || "Genting Highlands";
+		if (area && a !== area) continue;
+		if (!groups.has(a)) groups.set(a, []);
+		groups.get(a)!.push({ outlet, restaurant: r });
+	}
+}
+const areaLabel = (a: string) =>
+	lang === "zh" ? ({ "Genting Highlands": "云顶高原", "Klang Valley": "巴生谷" } as Record<string, string>)[a] ?? a : a;
+const anchor = (a: string) => a.toLowerCase().replace(/\s+/g, "-");
+---
+
+{
+	groups.size > 0 &&
+		[...groups.entries()].map(([a, items], i) => (
+			<section class:list={["section", { "on-jade": dark, plain: !dark }]} id={anchor(a)} aria-label={heading || areaLabel(a)}>
+				<div class="wrap">
+					{(heading ? i === 0 : true) && (
+						<div class="section-head">
+							<h2>{heading || areaLabel(a)}</h2>
+							{linkLabel && i === 0 && (
+								<a class="text-link" href={localePath(lang, "/contact")}>
+									{linkLabel}
+								</a>
+							)}
+						</div>
+					)}
+					<div class:list={["outlets", { stacked: maps }]}>
+						{items.map(({ outlet, restaurant }) => (
+							<div {...restaurant.edit?.outlets}>
+								<OutletCard
+									outlet={outlet}
+									lang={lang}
+									map={maps}
+									restaurant={{ name: restaurant.data.name, href: localePath(lang, `/restaurants/${restaurant.id}`) }}
+								/>
+							</div>
+						))}
+					</div>
+				</div>
+			</section>
+		))
+}
+
+<style>
+	.outlets {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+		gap: var(--space-3);
+	}
+
+	.outlets.stacked {
+		grid-template-columns: 1fr;
+	}
+
+	.outlets > div {
+		display: grid;
+	}
+
+	.plain :global(.outlet) {
+		border: 1px solid var(--line);
+	}
+
+	.on-jade .text-link {
+		text-decoration-color: var(--gold);
+	}
+</style>

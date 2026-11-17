@@ -1,0 +1,96 @@
+---
+/** Horizontal strip of signature dishes from every restaurant. */
+import Photo from "../Photo.astro";
+import { accentOf, getRestaurants } from "../../lib/content";
+import { localePath, type Lang } from "../../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	/** Section heading */
+	heading?: string;
+	/** Dishes taken from each restaurant */
+	perRestaurant?: number;
+}
+
+const { lang, heading, perRestaurant = 2 } = Astro.props;
+const restaurants = await getRestaurants(lang, Astro);
+const signatures = restaurants.flatMap((r) =>
+	(Array.isArray(r.data.signatures) ? r.data.signatures.slice(0, perRestaurant) : []).map((dish: any) => ({
+		dish,
+		restaurant: r,
+	})),
+);
+---
+
+{
+	signatures.length > 0 && (
+		<section class="section dishes" aria-label={heading || undefined}>
+			{heading && (
+				<div class="wrap">
+					<div class="section-head">
+						<h2>{heading}</h2>
+					</div>
+				</div>
+			)}
+			<ul class="dish-strip wrap">
+				{signatures.map(({ dish, restaurant }) => (
+					<li class="dish" {...restaurant.edit?.signatures}>
+						<Photo
+							image={dish.image}
+							alt={dish.name}
+							han={dish.name_zh || dish.name}
+							accent={accentOf(restaurant)}
+							ratio="1 / 1"
+							sizes="(min-width: 960px) 280px, 70vw"
+						/>
+						<h3>{dish.name}</h3>
+						{dish.description && <p>{dish.description}</p>}
+						<a class="from" href={localePath(lang, `/restaurants/${restaurant.id}#menu`)}>
+							{restaurant.data.name}
+						</a>
+					</li>
+				))}
+			</ul>
+		</section>
+	)
+}
+
+<style>
+	.dishes {
+		background: var(--white);
+	}
+
+	.dish-strip {
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: minmax(220px, 1fr);
+		gap: var(--space-3);
+		margin-top: 0;
+		margin-bottom: 0;
+		padding: 0 0 var(--space-2);
+		list-style: none;
+		overflow-x: auto;
+		scroll-snap-type: x mandatory;
+		overscroll-behavior-x: contain;
+	}
+
+	.dish {
+		scroll-snap-align: start;
+	}
+
+	.dish h3 {
+		margin: var(--space-2) 0 0.3rem;
+	}
+
+	.dish p {
+		font-size: var(--step--1);
+		color: var(--ink-soft);
+		margin-bottom: 0.4rem;
+	}
+
+	.from {
+		font-size: var(--step--1);
+		font-weight: 700;
+		color: var(--red);
+	}
+</style>

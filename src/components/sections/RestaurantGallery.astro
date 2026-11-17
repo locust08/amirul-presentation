@@ -1,0 +1,63 @@
+---
+/** Photo gallery for a restaurant. Hidden until photos are uploaded in the CMS. */
+import { Image } from "emdash/ui";
+import { hasImage, type AnyEntry } from "../../lib/content";
+
+interface Props {
+	/** The restaurant entry, loaded by the page */
+	entry: AnyEntry;
+	heading?: string;
+}
+
+const { entry, heading } = Astro.props;
+const gallery: any[] = Array.isArray(entry.data.gallery) ? entry.data.gallery.filter((g: any) => hasImage(g?.image)) : [];
+---
+
+{
+	gallery.length > 0 && (
+		<section class="section" aria-label={heading || undefined}>
+			<div class="wrap">
+				{heading && <h2>{heading}</h2>}
+				<ul class="gallery" {...entry.edit?.gallery}>
+					{gallery.map((g) => (
+						<li>
+							<figure>
+								<Image
+									image={g.image}
+									alt={g.image?.alt || g.caption || entry.data.name}
+									sizes="(min-width: 960px) 400px, 50vw"
+								/>
+								{g.caption && <figcaption>{g.caption}</figcaption>}
+							</figure>
+						</li>
+					))}
+				</ul>
+			</div>
+		</section>
+	)
+}
+
+<style>
+	.gallery {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+		gap: var(--space-2);
+		padding: 0;
+		margin: var(--space-3) 0 0;
+		list-style: none;
+	}
+	.gallery figure {
+		margin: 0;
+	}
+	.gallery :global(img) {
+		border-radius: var(--radius);
+		aspect-ratio: 4 / 3;
+		object-fit: cover;
+		width: 100%;
+	}
+	.gallery figcaption {
+		font-size: var(--step--1);
+		color: var(--ink-soft);
+		margin-top: 0.4rem;
+	}
+</style>

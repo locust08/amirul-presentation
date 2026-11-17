@@ -1,0 +1,72 @@
+---
+/** Red band with large Chinese lettering, a short story and a button. */
+import { localePath, type Lang } from "../../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	/** Large Chinese characters on the left */
+	mark?: string;
+	heading: string;
+	body?: string;
+	buttonLabel?: string;
+	/** Button link (path without the /zh prefix) */
+	buttonHref?: string;
+}
+
+const { lang, mark = "大福", heading, body, buttonLabel, buttonHref = "/about" } = Astro.props;
+const markChars = Array.from(mark);
+---
+
+<section class="story">
+	<div class="wrap story-grid">
+		<p class="story-mark han" lang="zh-Hans" aria-hidden="true">
+			{markChars.map((c) => <span>{c}</span>)}
+		</p>
+		<div>
+			<h2>{heading}</h2>
+			{body && <p class="lede">{body}</p>}
+			{buttonLabel && <a class="btn btn-gold" href={localePath(lang, buttonHref)}>{buttonLabel}</a>}
+		</div>
+	</div>
+</section>
+
+<style>
+	.story {
+		background: var(--red);
+		color: var(--white);
+		padding-block: var(--space-5);
+		overflow: hidden;
+	}
+
+	.story-grid {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		gap: var(--space-4);
+		align-items: center;
+	}
+
+	.story-mark {
+		display: flex;
+		flex-direction: column;
+		justify-self: start;
+		margin: 0;
+		font-size: clamp(5rem, 3rem + 9vw, 11rem);
+		line-height: 1;
+		color: var(--gold);
+	}
+
+	.story .lede {
+		color: rgb(255 255 255 / 0.9);
+		margin-bottom: var(--space-3);
+	}
+
+	@media (max-width: 860px) {
+		.story-grid {
+			grid-template-columns: 1fr;
+		}
+		.story-mark {
+			flex-direction: row;
+			font-size: 4.5rem;
+		}
+	}
+</style>

@@ -35,7 +35,42 @@ Open http://localhost:4321/_emdash/admin and create the first admin account. On 
 | `npm run typecheck` | Type-check the project |
 | `npm run seed:build` | Regenerate `seed/seed.json` from `scripts/build-seed.mjs` |
 | `npm run seed:apply` | Apply the seed to `./data.db` (only creates what is missing) |
-| `npm run routes` | Regenerate the thin EN/中文 route files in `src/pages` |
+| `npm run studio` | Open the Stacki visual page editor at http://localhost:4350/studio |
+
+## Three ways to edit
+
+| What you want to change | Where |
+| --- | --- |
+| Restaurants, menus, prices, outlets, hours, promotions, photos, translations | **EmDash admin** at `/_emdash/admin` |
+| A word or photo you can see on the site | **Click-to-edit** on the live site (see below) |
+| Page layout: which sections a page has, their order, headings, button labels, colours and spacing | **Stacki Studio** (`npm run studio`) |
+
+### Click-to-edit on the live site
+
+Sign in to the admin, then open any page of the site. A small EmDash bar appears at the bottom; switch on **Edit mode**.
+
+- Click any outlined text (restaurant name, tagline, price range, page titles, promotion titles…) and type. Rich text such as a restaurant's story is edited in place too.
+- Click a photo to replace it from the media library or upload a new one.
+- Click a list (signature dishes, menu, outlets, gallery) to open that list in the admin.
+- Changes are saved as a **draft**; press **Publish** in the bar to make them live.
+- On a `/zh` page you edit the Chinese version; the English page is unaffected.
+
+### Stacki Studio (page layout)
+
+[Stacki](https://github.com/flowtricks/stacki) is an open-source visual builder for Astro, installed in `studio/` (version 1.4.5). Run:
+
+```bash
+npm --prefix studio ci   # first time only: installs Studio's own dependencies
+npm run studio           # → http://localhost:4350/studio
+```
+
+Every page is a list of sections (for example the homepage is `HomeHero`, `RestaurantGrid`, `SignatureStrip`, `StoryBand`, `LatestPromotions`, `Locations`). In Studio you can select a section, edit its settings (heading, intro, button labels and links, how many items to show), drag sections to reorder them, and add or remove sections from the component palette. Studio saves straight into the page files in `src/pages/`, so review the change with `git diff` and commit it like any other change. English and Chinese pages are separate files (`src/pages/…` and `src/pages/zh/…`), so update both.
+
+Section content that comes from the CMS (restaurant names, dishes, promotions) is shown in Studio but edited in EmDash.
+
+Known Stacki 1.4.5 issue: in a long, multi-line setting (such as the homepage headline), selecting all the text and typing a replacement keeps only the first letter, because the box switches to single-line mid-edit. Paste the new text instead, or edit within the existing text.
+
+`npm run studio` edits the real files on your computer. Stacki's own `npm --prefix studio run dev` instead edits a temporary copy for its hosted (Cloudflare) workflow; see `studio/docs/cloudflare.md`.
 
 ## Editing content (for the DAFU team)
 
@@ -43,7 +78,7 @@ All content lives in three collections in the admin:
 
 - **Restaurants** — one entry per brand. Fields: name, Chinese name (drives the signboard), tagline, short description, cuisine, signboard colour (red / gold / neon / jade), order on the site, price range, main photo, concept story, **signature dishes**, **menu** (items grouped by *Menu section*), optional menu PDF, photo gallery and **outlets** (name, area, address, opening hours, phone, WhatsApp, Google Maps link).
 - **Promotions & News** — type (promotion / new opening / announcement), which restaurant it belongs to, summary, image, valid from/until and details. Items past their *Valid until* date drop off the site automatically. Scheduling lets you publish in advance.
-- **Pages** — *About*, plus two special entries: `home` (homepage headline, intro and hero photo) and `contact` (contact page intro and the *Group enquiries* text). Any other page you create appears at `/<slug>`.
+- **Pages** — *About*, plus two special entries: `home` (the homepage hero photo) and `contact` (the *Group enquiries* text). Any other page you create appears at `/<slug>`. The homepage headline and other section headings are page settings, edited in Stacki Studio.
 
 **Chinese version.** Open an entry and use the language switcher to add its 中文 translation. Anything not translated yet falls back to English automatically, so a new restaurant can go live in English first. Photos, signboard colour and order are shared between languages.
 
@@ -102,13 +137,15 @@ To move to Cloudflare Workers (D1 database + R2 media) later, swap the adapter a
 astro.config.mjs        Astro + EmDash config, i18n (en, zh), fonts
 seed/seed.json          Generated schema + launch content (do not edit by hand)
 scripts/build-seed.mjs  Source for the seed: content types and bilingual content
-scripts/gen-routes.mjs  Generates src/pages route files for each language
+scripts/studio.mjs      Starts Stacki Studio on the project's own files
 src/i18n/ui.ts          Interface text in English and Chinese, URL helpers
 src/lib/content.ts      Content queries with English fallback, outlet helpers
 src/lib/seo.ts          JSON-LD builders
+src/lib/pageMeta.ts     <title>, description and JSON-LD for each kind of page
 src/layouts/Base.astro  <head>, SEO tags, header and footer
 src/components/         Signboard, Photo, cards, outlet + map
-src/views/              One view per page type, shared by both languages
-src/pages/              Thin generated routes (/, /zh/...) + sitemap
+src/components/sections Page sections with editable settings (used by Stacki)
+src/pages/              Pages as lists of sections: English at /, Chinese under zh/
+studio/                 Stacki Studio source (its node_modules are not committed)
 src/styles/global.css   Design tokens and base styles
 ```

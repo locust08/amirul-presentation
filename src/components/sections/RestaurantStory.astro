@@ -1,0 +1,32 @@
+---
+/** The restaurant's concept story (rich text from the CMS, editable in place). */
+import { PortableText } from "emdash/ui";
+import type { AnyEntry } from "../../lib/content";
+
+interface Props {
+	/** The restaurant entry, loaded by the page */
+	entry: AnyEntry;
+}
+
+const { entry } = Astro.props;
+const story = entry.data.story;
+---
+
+{
+	Array.isArray(story) && story.length > 0 && (
+		<section class="section">
+			<div class="wrap">
+				<div class="prose story">
+					<PortableText value={story} />
+				</div>
+			</div>
+		</section>
+	)
+}
+
+<style>
+	.story {
+		font-size: var(--step-1);
+		line-height: 1.6;
+	}
+</style>

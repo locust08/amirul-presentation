@@ -1,0 +1,58 @@
+---
+/** Jade page header with the page title, intro and an optional button. */
+import Signboard from "../Signboard.astro";
+import { localePath, type Lang } from "../../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	heading: string;
+	lede?: string;
+	/** Chinese characters on a hanging signboard at the right (leave empty to hide) */
+	sign?: string;
+	buttonLabel?: string;
+	/** Button link (path without the /zh prefix) */
+	buttonHref?: string;
+	/** Plain background instead of jade (e.g. the 404 page) */
+	plain?: boolean;
+}
+
+const { lang, heading, lede, sign, buttonLabel, buttonHref = "/", plain = false } = Astro.props;
+---
+
+<header class:list={["page-head", { "on-jade": !plain }]}>
+	<div class="wrap head-grid">
+		<div>
+			<h1>{heading}</h1>
+			{lede && <p class="lede">{lede}</p>}
+			{buttonLabel && <a class:list={["btn", plain ? "btn-red" : "btn-gold"]} href={localePath(lang, buttonHref)}>{buttonLabel}</a>}
+		</div>
+		{sign && <Signboard text={sign} accent="red" size="lg" class="head-sign" />}
+	</div>
+</header>
+
+<style>
+	.page-head {
+		padding-block: var(--space-5) var(--space-4);
+		overflow: hidden;
+	}
+
+	.head-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: var(--space-4);
+		align-items: start;
+	}
+
+	.head-grid :global(.head-sign) {
+		margin-top: calc(-1 * var(--space-5));
+	}
+
+	@media (max-width: 760px) {
+		.head-grid {
+			grid-template-columns: 1fr;
+		}
+		.head-grid :global(.head-sign) {
+			display: none;
+		}
+	}
+</style>

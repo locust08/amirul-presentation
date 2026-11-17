@@ -1,0 +1,45 @@
+---
+/** Cards for the group's other restaurants. */
+import RestaurantCard from "../RestaurantCard.astro";
+import { getRestaurants, type AnyEntry } from "../../lib/content";
+import type { Lang } from "../../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	/** The current restaurant (left out of the list) */
+	entry: AnyEntry;
+	heading?: string;
+}
+
+const { lang, entry, heading } = Astro.props;
+const others = (await getRestaurants(lang, Astro)).filter((r) => r.id !== entry.id);
+---
+
+{
+	others.length > 0 && (
+		<section class="section others" aria-label={heading || undefined}>
+			<div class="wrap">
+				{heading && <h2>{heading}</h2>}
+				<div class="others-grid">
+					{others.map((r) => (
+						<RestaurantCard entry={r} lang={lang} />
+					))}
+				</div>
+			</div>
+		</section>
+	)
+}
+
+<style>
+	.others {
+		background: var(--white);
+	}
+
+	.others-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+		gap: var(--space-3);
+		margin-top: var(--space-3);
+		max-width: 820px;
+	}
+</style>

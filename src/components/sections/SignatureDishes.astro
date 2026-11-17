@@ -1,0 +1,93 @@
+---
+/** Grid of a restaurant's signature dishes. */
+import Photo from "../Photo.astro";
+import { accentOf, type AnyEntry } from "../../lib/content";
+
+interface Props {
+	/** The restaurant entry, loaded by the page */
+	entry: AnyEntry;
+	heading?: string;
+}
+
+const { entry, heading } = Astro.props;
+const accent = accentOf(entry);
+const dishes: any[] = Array.isArray(entry.data.signatures) ? entry.data.signatures : [];
+---
+
+{
+	dishes.length > 0 && (
+		<section class="section signatures" aria-label={heading || undefined}>
+			<div class="wrap">
+				{heading && <h2>{heading}</h2>}
+				<ul class="sig-grid" {...entry.edit?.signatures}>
+					{dishes.map((dish) => (
+						<li>
+							<Photo
+								image={dish.image}
+								alt={dish.name}
+								han={dish.name_zh || dish.name}
+								accent={accent}
+								ratio="1 / 1"
+								sizes="(min-width: 960px) 280px, 50vw"
+							/>
+							<div class="sig-body">
+								<h3>{dish.name}</h3>
+								{dish.name_zh && dish.name_zh !== dish.name && (
+									<p class="sig-zh han" lang="zh-Hans">
+										{dish.name_zh}
+									</p>
+								)}
+								{dish.description && <p>{dish.description}</p>}
+								{dish.price && <p class="price">{dish.price}</p>}
+							</div>
+						</li>
+					))}
+				</ul>
+			</div>
+		</section>
+	)
+}
+
+<style>
+	.signatures {
+		background: var(--white);
+	}
+
+	.sig-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+		gap: var(--space-3);
+		margin: var(--space-3) 0 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.sig-body h3 {
+		margin: var(--space-2) 0 0.2rem;
+	}
+
+	.sig-zh {
+		font-size: var(--step-0);
+		color: var(--ink-soft);
+		margin-bottom: 0.4rem;
+		letter-spacing: 0.08em;
+	}
+
+	.sig-body p {
+		font-size: var(--step--1);
+		color: var(--ink-soft);
+		margin-bottom: 0.4rem;
+	}
+
+	@media (max-width: 560px) {
+		.sig-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+
+	.sig-body .price {
+		font-weight: 800;
+		color: var(--ink);
+		font-size: var(--step-0);
+	}
+</style>

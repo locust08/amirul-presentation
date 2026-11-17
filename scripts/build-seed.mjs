@@ -514,7 +514,7 @@ const promotions = [
 
 const pages = [
 	{
-		// Editable homepage hero: title, intro and main photo.
+		// Holds the homepage hero photo (the headline itself is set in src/pages/index.astro).
 		id: "pg-home",
 		slug: "home",
 		en: {
@@ -527,7 +527,7 @@ const pages = [
 		},
 	},
 	{
-		// Contact page: intro and the "Group enquiries" text.
+		// Holds the contact page's "Group enquiries" text.
 		id: "pg-contact",
 		slug: "contact",
 		en: {

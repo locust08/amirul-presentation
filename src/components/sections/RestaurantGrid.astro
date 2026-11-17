@@ -1,0 +1,53 @@
+---
+/** Cards for every published restaurant, in the order set in the CMS. */
+import RestaurantCard from "../RestaurantCard.astro";
+import { getRestaurants } from "../../lib/content";
+import type { Lang } from "../../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	/** Section heading (leave empty to hide) */
+	heading?: string;
+	/** Text beside the heading */
+	lede?: string;
+	/** Use h2 for the card titles when this section has no heading */
+	cardHeadings?: "h2" | "h3";
+	/** Text shown when no restaurants are published */
+	emptyText?: string;
+}
+
+const { lang, heading, lede, cardHeadings = "h3", emptyText } = Astro.props;
+const restaurants = await getRestaurants(lang, Astro);
+---
+
+<section class="section" aria-label={heading || undefined}>
+	<div class="wrap">
+		{
+			(heading || lede) && (
+				<div class="section-head">
+					{heading && <h2>{heading}</h2>}
+					{lede && <p>{lede}</p>}
+				</div>
+			)
+		}
+		{
+			restaurants.length === 0 ? (
+				emptyText && <p>{emptyText}</p>
+			) : (
+				<div class="cards">
+					{restaurants.map((r) => (
+						<RestaurantCard entry={r} lang={lang} headingLevel={cardHeadings} />
+					))}
+				</div>
+			)
+		}
+	</div>
+</section>
+
+<style>
+	.cards {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+		gap: var(--space-3);
+	}
+</style>

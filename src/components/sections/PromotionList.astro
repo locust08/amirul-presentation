@@ -1,0 +1,91 @@
+---
+/**
+ * All live promotions and news with restaurant filter chips.
+ * The filter reads ?restaurant=<slug> from the address.
+ */
+import PromoCard from "../PromoCard.astro";
+import { getPromotions, getRestaurants, restaurantLookup } from "../../lib/content";
+import { localePath, type Lang } from "../../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	/** Label of the "show everything" filter chip */
+	allLabel?: string;
+	/** Text shown when there are no live promotions */
+	emptyText?: string;
+}
+
+const { lang, allLabel = "All", emptyText } = Astro.props;
+const [promotions, restaurants] = await Promise.all([getPromotions(lang, Astro), getRestaurants(lang, Astro)]);
+const lookup = restaurantLookup(restaurants);
+
+const requested = Astro.url.searchParams.get("restaurant");
+const filter = requested && lookup.has(requested) ? requested : null;
+const shown = filter ? promotions.filter((p) => p.data.restaurant === filter || p.data.restaurant === "all") : promotions;
+const base = localePath(lang, "/promotions");
+const chips = [{ slug: null as string | null, label: allLabel }, ...restaurants.map((r) => ({ slug: r.id, label: r.data.name as string }))];
+---
+
+<section class="section">
+	<div class="wrap">
+		{
+			restaurants.length > 1 && (
+				<nav class="filters" aria-label={lang === "zh" ? "按餐厅筛选" : "Filter by restaurant"}>
+					{chips.map((c) => (
+						<a href={c.slug ? `${base}?restaurant=${c.slug}` : base} aria-current={c.slug === filter ? "page" : undefined}>
+							{c.label}
+						</a>
+					))}
+				</nav>
+			)
+		}
+		{
+			shown.length === 0 ? (
+				emptyText && <p class="empty">{emptyText}</p>
+			) : (
+				<div class="list">
+					{shown.map((p) => (
+						<PromoCard entry={p} lang={lang} restaurants={lookup} layout="row" />
+					))}
+				</div>
+			)
+		}
+	</div>
+</section>
+
+<style>
+	.filters {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-bottom: var(--space-4);
+	}
+
+	.filters a {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		padding: 0 1rem;
+		border: 2px solid var(--line);
+		border-radius: 999px;
+		font-weight: 600;
+		text-decoration: none;
+		background: var(--white);
+	}
+
+	.filters a[aria-current="page"] {
+		background: var(--jade);
+		border-color: var(--jade);
+		color: var(--white);
+	}
+
+	.list {
+		display: grid;
+		gap: var(--space-4);
+		max-width: 980px;
+	}
+
+	.empty {
+		font-size: var(--step-1);
+	}
+</style>

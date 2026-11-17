@@ -1,0 +1,41 @@
+---
+/** A restaurant's outlets with address, hours, directions and a map. */
+import OutletCard from "../OutletCard.astro";
+import { outletsOf, type AnyEntry } from "../../lib/content";
+import type { Lang } from "../../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	/** The restaurant entry, loaded by the page */
+	entry: AnyEntry;
+	heading?: string;
+	/** Show a map beside each outlet */
+	maps?: boolean;
+}
+
+const { lang, entry, heading, maps = true } = Astro.props;
+const outlets = outletsOf(entry);
+---
+
+{
+	outlets.length > 0 && (
+		<section id="visit" class="section on-jade" aria-label={heading || undefined}>
+			<div class="wrap">
+				{heading && <h2>{heading}</h2>}
+				<div class="outlets" {...entry.edit?.outlets}>
+					{outlets.map((o, i) => (
+						<OutletCard outlet={o} lang={lang} map={maps && i < 3} />
+					))}
+				</div>
+			</div>
+		</section>
+	)
+}
+
+<style>
+	.outlets {
+		display: grid;
+		gap: var(--space-3);
+		margin-top: var(--space-3);
+	}
+</style>

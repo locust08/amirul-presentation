@@ -1,0 +1,62 @@
+---
+/** Sticky Menu / Directions / Call bar at the bottom of the screen on phones. */
+import { directionsUrl, outletsOf, telHref, type AnyEntry } from "../../lib/content";
+import { useTranslations, type Lang } from "../../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	/** The restaurant entry, loaded by the page */
+	entry: AnyEntry;
+}
+
+const { lang, entry } = Astro.props;
+const t = useTranslations(lang);
+const primary = outletsOf(entry)[0];
+---
+
+{
+	primary && (
+		<div class="mobile-bar" role="navigation" aria-label={t("restaurants.visit")}>
+			<a href="#menu">{t("restaurants.menu")}</a>
+			<a href={directionsUrl(primary)} target="_blank" rel="noopener noreferrer">
+				{t("home.ctaDirections")}
+			</a>
+			{primary.phone && <a href={telHref(primary.phone)}>{t("restaurants.call")}</a>}
+		</div>
+	)
+}
+
+<style>
+	.mobile-bar {
+		display: none;
+	}
+
+	@media (max-width: 860px) {
+		.mobile-bar {
+			display: grid;
+			grid-auto-flow: column;
+			grid-auto-columns: 1fr;
+			position: sticky;
+			bottom: 0;
+			z-index: 40;
+			background: var(--jade-deep);
+			border-top: 3px solid var(--accent, var(--red));
+			padding-bottom: env(safe-area-inset-bottom);
+		}
+		.mobile-bar a {
+			display: grid;
+			place-items: center;
+			min-height: 56px;
+			color: var(--white);
+			font-weight: 700;
+			text-decoration: none;
+		}
+		.mobile-bar a + a {
+			border-left: 1px solid rgb(255 255 255 / 0.15);
+		}
+		.mobile-bar a:first-child {
+			background: var(--accent, var(--red));
+			color: var(--accent-ink, var(--white));
+		}
+	}
+</style>

@@ -1,0 +1,127 @@
+---
+/** A single promotion or news item. */
+import { PortableText } from "emdash/ui";
+import Photo from "../Photo.astro";
+import { getRestaurants, restaurantLookup, type AnyEntry } from "../../lib/content";
+import { formatDate, localePath, useTranslations, type Lang, type UIKey } from "../../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	/** The promotion entry, loaded by the page */
+	entry: AnyEntry;
+}
+
+const { lang, entry } = Astro.props;
+const t = useTranslations(lang);
+const lookup = restaurantLookup(await getRestaurants(lang, Astro));
+const d = entry.data;
+const r = lookup.get(d.restaurant);
+const kind = ["promotion", "opening", "announcement"].includes(d.kind) ? d.kind : "promotion";
+const from = formatDate(d.valid_from, lang);
+const until = formatDate(d.valid_until, lang);
+---
+
+<article class="section">
+	<div class="wrap layout">
+		<div class="copy">
+			<p class="back"><a href={localePath(lang, "/promotions")}>{t("promotions.back")}</a></p>
+			<p class="kind" {...entry.edit?.kind}>
+				{t(`promotions.kind.${kind}` as UIKey)}
+				<span>
+					{r ? <a href={localePath(lang, `/restaurants/${d.restaurant}`)}>{r.name}</a> : t("promotions.allRestaurants")}
+				</span>
+			</p>
+			<h1 {...entry.edit?.title}>{d.title}</h1>
+			{d.excerpt && <p class="lede" {...entry.edit?.excerpt}>{d.excerpt}</p>}
+			{
+				(from || until) && (
+					<p class="dates" {...entry.edit?.valid_until}>
+						{until ? `${t("promotions.validUntil")} ${until}` : from}
+					</p>
+				)
+			}
+			<div class="prose">
+				<PortableText value={d.content} />
+			</div>
+			{
+				r && (
+					<a class="btn btn-red" href={localePath(lang, `/restaurants/${d.restaurant}#visit`)}>
+						{t("restaurants.directions")}
+					</a>
+				)
+			}
+		</div>
+		<div class="art" {...entry.edit?.image}>
+			<Photo
+				image={d.image}
+				alt={d.title}
+				han={r?.name_zh ?? "大福"}
+				accent={r?.accent ?? "jade"}
+				ratio="4 / 5"
+				loading="eager"
+				sizes="(min-width: 900px) 440px, 100vw"
+			/>
+		</div>
+	</div>
+</article>
+
+<style>
+	.layout {
+		display: grid;
+		grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+		gap: var(--space-5);
+		align-items: start;
+	}
+
+	.back {
+		font-size: var(--step--1);
+		font-weight: 600;
+	}
+
+	.kind {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.6rem;
+		font-weight: 700;
+		color: var(--red);
+		margin-bottom: var(--space-1);
+	}
+	.kind span {
+		color: var(--ink-soft);
+		font-weight: 500;
+	}
+
+	h1 {
+		font-size: var(--step-3);
+	}
+
+	.dates {
+		display: inline-block;
+		padding: 0.4rem 0.8rem;
+		background: var(--gold);
+		border-radius: var(--radius);
+		font-weight: 700;
+	}
+
+	.prose {
+		margin-block: var(--space-3);
+	}
+
+	.art {
+		position: sticky;
+		top: 6rem;
+	}
+
+	@media (max-width: 860px) {
+		.layout {
+			grid-template-columns: 1fr;
+		}
+		.art {
+			order: -1;
+			position: static;
+		}
+		.art :global(.photo) {
+			aspect-ratio: 16 / 10 !important;
+		}
+	}
+</style>

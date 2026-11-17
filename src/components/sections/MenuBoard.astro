@@ -1,0 +1,145 @@
+---
+/** The restaurant menu, grouped by section, styled as a cha chaan teng menu board. */
+import { groupMenu, type AnyEntry } from "../../lib/content";
+import type { Lang } from "../../i18n/ui";
+
+interface Props {
+	lang: Lang;
+	/** The restaurant entry, loaded by the page */
+	entry: AnyEntry;
+	heading?: string;
+	/** Small print under the menu */
+	note?: string;
+	/** Label of the PDF download button (shown when a menu PDF is uploaded) */
+	pdfLabel?: string;
+}
+
+const { lang, entry, heading, note, pdfLabel } = Astro.props;
+const menu = groupMenu(entry.data.menu);
+const menuPdf = entry.data.menu_pdf?.url || entry.data.menu_pdf?.src;
+---
+
+{
+	menu.length > 0 && (
+		<section id="menu" class="section" aria-label={heading || undefined}>
+			<div class="wrap">
+				<div class="menu-board" {...entry.edit?.menu}>
+					{heading && <h2>{heading}</h2>}
+					<div class="menu-cols">
+						{menu.map((section) => (
+							<section class="menu-group">
+								{section.title && <h3>{section.title}</h3>}
+								<ul>
+									{section.items.map((item) => (
+										<li>
+											<span class="item">
+												<span class="item-name">{item.name}</span>
+												{item.name_zh && item.name_zh !== item.name && (
+													<span class="item-alt" lang={lang === "zh" ? "en" : "zh-Hans"}>
+														{item.name_zh}
+													</span>
+												)}
+												{item.description && <span class="item-desc">{item.description}</span>}
+											</span>
+											<span class="dots" aria-hidden="true" />
+											{item.price && <span class="item-price">{item.price}</span>}
+										</li>
+									))}
+								</ul>
+							</section>
+						))}
+					</div>
+					{note && <p class="menu-note">{note}</p>}
+					{menuPdf && pdfLabel && (
+						<a class="btn btn-gold" href={menuPdf} target="_blank" rel="noopener">
+							{pdfLabel}
+						</a>
+					)}
+				</div>
+			</div>
+		</section>
+	)
+}
+
+<style>
+	.menu-board {
+		background: var(--jade-deep);
+		background-image: var(--tile);
+		color: var(--white);
+		border-radius: var(--radius);
+		padding: clamp(1.5rem, 1rem + 3vw, 3.5rem);
+		box-shadow:
+			inset 0 0 0 6px var(--jade-deep),
+			inset 0 0 0 8px var(--gold);
+	}
+
+	.menu-board h2 {
+		color: var(--gold);
+	}
+
+	.menu-cols {
+		columns: 2 320px;
+		column-gap: var(--space-5);
+	}
+
+	.menu-group {
+		break-inside: avoid;
+		margin-bottom: var(--space-4);
+	}
+
+	.menu-group h3 {
+		color: var(--gold);
+		font-size: var(--step-0);
+		margin-bottom: var(--space-2);
+		padding-bottom: 0.5rem;
+		border-bottom: 2px solid rgb(242 182 60 / 0.5);
+	}
+
+	.menu-group ul {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		display: grid;
+		gap: 0.9rem;
+	}
+
+	.menu-group li {
+		display: grid;
+		grid-template-columns: auto 1fr auto;
+		align-items: baseline;
+		gap: 0.6rem;
+	}
+
+	.item {
+		display: flex;
+		flex-direction: column;
+		max-width: 30ch;
+	}
+
+	.item-name {
+		font-weight: 700;
+	}
+
+	.item-alt,
+	.item-desc {
+		font-size: var(--step--1);
+		color: rgb(255 255 255 / 0.7);
+	}
+
+	.dots {
+		border-bottom: 2px dotted rgb(255 255 255 / 0.35);
+		transform: translateY(-0.3em);
+		min-width: 1rem;
+	}
+
+	.item-price {
+		font-weight: 800;
+		color: var(--gold);
+		white-space: nowrap;
+	}
+
+	.menu-note {
+		font-size: var(--step--1);
+		color: rgb(255 255 255 / 0.75);
+	}
+</style>

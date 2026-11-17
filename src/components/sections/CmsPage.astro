@@ -1,0 +1,83 @@
+---
+/**
+ * A page written in the CMS (Pages collection): jade header with its title and
+ * intro, then its rich-text content and optional photo. All editable in place.
+ */
+import { PortableText } from "emdash/ui";
+import Photo from "../Photo.astro";
+import Signboard from "../Signboard.astro";
+import { hasImage, type AnyEntry } from "../../lib/content";
+
+interface Props {
+	/** The page entry, loaded by the page */
+	entry: AnyEntry;
+	/** Chinese characters on a hanging signboard in the header (leave empty to hide) */
+	sign?: string;
+}
+
+const { entry, sign } = Astro.props;
+const d = entry.data;
+const photo = hasImage(d.hero_image);
+---
+
+<header class="page-head on-jade">
+	<div class="wrap head-grid">
+		<div>
+			<h1 {...entry.edit?.title}>{d.title}</h1>
+			{d.intro && <p class="lede" {...entry.edit?.intro}>{d.intro}</p>}
+		</div>
+		{sign && <Signboard text={sign} accent="red" size="lg" class="head-sign" />}
+	</div>
+</header>
+
+<section class="section">
+	<div class:list={["wrap", "body", { "has-photo": photo }]}>
+		<div class="prose">
+			<PortableText value={d.content} />
+		</div>
+		{
+			photo && (
+				<div {...entry.edit?.hero_image}>
+					<Photo image={d.hero_image} alt={d.title} ratio="4 / 5" sizes="(min-width: 900px) 420px, 100vw" />
+				</div>
+			)
+		}
+	</div>
+</section>
+
+<style>
+	.page-head {
+		padding-block: var(--space-5) var(--space-4);
+		overflow: hidden;
+	}
+
+	.head-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: var(--space-4);
+		align-items: start;
+	}
+
+	.head-grid :global(.head-sign) {
+		margin-top: calc(-1 * var(--space-5));
+	}
+
+	.body.has-photo {
+		display: grid;
+		grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+		gap: var(--space-5);
+		align-items: start;
+	}
+
+	@media (max-width: 760px) {
+		.head-grid {
+			grid-template-columns: 1fr;
+		}
+		.head-grid :global(.head-sign) {
+			display: none;
+		}
+		.body.has-photo {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

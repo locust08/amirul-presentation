@@ -14,7 +14,7 @@
     "typecheck": "astro check",
     "seed:build": "node scripts/build-seed.mjs",
     "seed:apply": "emdash seed seed/seed.json",
-    "routes": "node scripts/gen-routes.mjs"
+    "studio": "node scripts/studio.mjs"
   },
   "engines": {
     "node": ">=22.16"
